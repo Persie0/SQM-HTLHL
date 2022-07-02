@@ -5,8 +5,15 @@
 #include "SparkFun_AS3935.h"
 #include <SparkFunMLX90614.h>
 #include <SparkFunTSL2561.h>
+#include "FreqCountESP.h"
 
 bool raining;
+
+// TSL237 Sensor
+float mySQMreading = 0.0; // the SQM value, sky magnitude
+double irradiance = 1.0;
+double nelm = 1.0;
+uint32_t frequency = 1; // measured TSL237 frequency which is dependent on light                      // the SQM value, sky magnitude
 
 IRTherm therm; // Create an IRTherm object to interact with throughout
 
@@ -16,13 +23,13 @@ SFE_TSL2561 light;
 boolean gain;    // Gain setting, 0 = X1, 1 = X16;
 unsigned int ms; // Integration ("shutter") time in milliseconds
 
-// particle sensor
 unsigned long duration;
 unsigned long starttime;
-unsigned long sampletime_ms = 3000; // sampe 3s ;
+unsigned long sampletime_ms = 100;//sample 100ms ;
 unsigned long lowpulseoccupancy = 0;
 float ratio = 0;
-float concentration = 0;
+float temp_concentration = 0;
+int concentration=0;
 
 // 0x03 is default, but the address can also be 0x02, or 0x01.
 // Adjust the address jumpers on the underside of the product.
@@ -46,7 +53,7 @@ byte lightningThresh = 1;
 // event issued by the lightning detector.
 byte intVal = 0;
 
-void getraining()
+void read_rain()
 {
   if (!digitalRead(rainS_DO))
   {
@@ -55,7 +62,14 @@ void getraining()
   else
   {
     raining = false;
+    Serial.print("NOT ");
   }
+  
+   Serial.println("raining");
+  /*
+  rainVout = analogRead( rs_AO );
+  millivolts = map(rainVout, 0, 1023, 0, 5000 );
+  volts = (float) millivolts / 1000.0;*/
 }
 
 bool init_MLX90614()
@@ -84,9 +98,9 @@ void read_MLX90614()
     // temperatures.
     // They'll be floats, calculated out to the unit you set with setUnit().
     Serial.print("Object: " + String(therm.object(), 2));
-    Serial.println("F");
+    Serial.println("C");
     Serial.print("Ambient: " + String(therm.ambient(), 2));
-    Serial.println("F");
+    Serial.println("C");
   }
 }
 
@@ -325,6 +339,60 @@ void read_AS3935()
   }
 }
 
+bool read_TSL237()
+{
+  if (FreqCountESP.available())
+  {
+    frequency = FreqCountESP.read();
+    if (frequency < 1)
+    {
+      frequency = 1;
+    }
+    // 0.973 was derived by comparing TLS237 sensor readings against Unihedron and plotting on graph then deriving coefficient
+    mySQMreading = (sqm_limit - (2.5 * log10(frequency)) * 0.973); // frequency to magnitudes/arcSecond2
+    if (isnan(mySQMreading))
+    {
+      mySQMreading = 0.0; // avoid nan and negative values
+    }
+    if (mySQMreading == -0.0)
+    {
+      mySQMreading = 0.0;
+    }
+    nelm = 7.93 - 5.0 * log10((pow(10, (4.316 - (mySQMreading / 5.0))) + 1));
+    irradiance = frequency / 2.3e3; // calculate irradiance as uW/(cm^2)
+    Serial.print(mySQMreading);
+    Serial.println("SQM");
+    return true;
+  }
+  else
+  return false;
+}
+
+void read_particle() 
+{
+    starttime = millis();//get the current time;
+    while(1)
+    {
+    duration = pulseIn(particle_pin, LOW);
+    lowpulseoccupancy = lowpulseoccupancy+duration;
+ 
+    if ((millis()-starttime) > sampletime_ms)//if the sampel time == 100ms
+    {
+        ratio = lowpulseoccupancy/(sampletime_ms*10.0);  // Integer percentage 0=>100
+        temp_concentration = 1.1*pow(ratio,3)-3.8*pow(ratio,2)+520*ratio+0.62; // using spec sheet curve
+        if(temp_concentration!=0.62 && temp_concentration!=0)
+        {
+        concentration=temp_concentration;
+        }
+        Serial.print((int)(concentration/0.0002831685));
+        Serial.println("p/m3");
+        lowpulseoccupancy = 0;
+        starttime = millis();
+        break;
+    }
+    }
+}
+
 void setup()
 {
   Serial.begin(115200); // Initialize Serial to log output
@@ -333,6 +401,10 @@ void setup()
   init_MLX90614();
   init_TSL2561();
   init_AS3935();
+
+  FreqCountESP.begin(SQMpin, 1000);
+  pinMode(rainS_DO, INPUT);
+  pinMode(particle_pin,INPUT);
 }
 
 void loop()
@@ -340,6 +412,11 @@ void loop()
   read_MLX90614();
   read_TSL2561();
   read_AS3935();
+  read_TSL237();
+  read_rain();
+  read_particle();
+
   Serial.println();
-  vTaskDelay(4000 / portTICK_RATE_MS);
+  
+  vTaskDelay(6000 / portTICK_RATE_MS);
 }
