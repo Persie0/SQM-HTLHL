@@ -25,7 +25,7 @@ unsigned int ms; // Integration ("shutter") time in milliseconds
 
 unsigned long duration;
 unsigned long starttime;
-unsigned long sampletime_ms = 100;//sample 100ms ;
+unsigned long sampletime_ms = 3000;//sample 100ms ;
 unsigned long lowpulseoccupancy = 0;
 float ratio = 0;
 float temp_concentration = 0;
@@ -370,9 +370,11 @@ bool read_TSL237()
 
 void read_particle() 
 {
+  int count=0;
     starttime = millis();//get the current time;
     while(1)
     {
+      count++;
     duration = pulseIn(particle_pin, LOW);
     lowpulseoccupancy = lowpulseoccupancy+duration;
  
@@ -384,11 +386,12 @@ void read_particle()
         {
         concentration=temp_concentration;
         }
-        Serial.print((int)(concentration/0.0002831685));
-        Serial.println("p/m3");
         lowpulseoccupancy = 0;
         starttime = millis();
-        break;
+        if(concentration==temp_concentration || count>particle_retries)
+        {
+          break;
+        }
     }
     }
 }
@@ -407,6 +410,7 @@ void setup()
   pinMode(particle_pin,INPUT);
 }
 
+
 void loop()
 {
   read_MLX90614();
@@ -415,8 +419,13 @@ void loop()
   read_TSL237();
   read_rain();
   read_particle();
+  Serial.print((int)(concentration/0.0002831685));
+  Serial.println("p/m3");
 
   Serial.println();
-  
-  vTaskDelay(6000 / portTICK_RATE_MS);
+
+  //esp_wifi_stop();
+  esp_sleep_enable_timer_wakeup(uS_FACTOR*SLEEPTIME_s);
+  Serial.println("Going to sleep now");
+  esp_deep_sleep_start();
 }
