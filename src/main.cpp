@@ -1,13 +1,23 @@
 #include <Arduino.h>
 #include "defines.h"
-#include "WiFi.h"
 #include <Wire.h>
 #include "SparkFun_AS3935.h"
 #include <SparkFunMLX90614.h>
 #include <SparkFunTSL2561.h>
 #include "FreqCountESP.h"
+#include "esp_wifi.h"
+#include "driver/adc.h"
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <sstream>
 
 bool raining;
+
+float ambient, object;
+
+    double lux;   // Resulting lux value
+
+    uint8_t lightning_distanceToStorm;
 
 // TSL237 Sensor
 float mySQMreading = 0.0; // the SQM value, sky magnitude
@@ -25,12 +35,11 @@ unsigned int ms; // Integration ("shutter") time in milliseconds
 
 unsigned long duration;
 unsigned long starttime;
-unsigned long sampletime_ms = 3000;//sample 100ms ;
+unsigned long sampletime_ms = 3000; // sample 100ms ;
 unsigned long lowpulseoccupancy = 0;
 float ratio = 0;
 float temp_concentration = 0;
-int concentration=0;
-
+int concentration = 0;
 
 // If you're using I-squared-C then keep the following line. Address is set to
 // default.
@@ -45,6 +54,9 @@ byte lightningThresh = 1;
 // event issued by the lightning detector.
 byte intVal = 0;
 
+      WiFiClient client;
+      HTTPClient http;
+
 void read_rain()
 {
   if (!digitalRead(rainS_DO))
@@ -56,8 +68,8 @@ void read_rain()
     raining = false;
     Serial.print("NOT ");
   }
-  
-   Serial.println("raining");
+
+  Serial.println("raining");
   /*
   rainVout = analogRead( rs_AO );
   millivolts = map(rainVout, 0, 1023, 0, 5000 );
@@ -69,8 +81,6 @@ bool init_MLX90614()
   if (therm.begin() == false)
   { // Initialize thermal IR sensor
     Serial.println("Qwiic IR thermometer did not acknowledge! Freezing!");
-    while (1)
-      ;
   }
   Serial.println("Qwiic IR Thermometer did acknowledge.");
 
@@ -89,6 +99,8 @@ void read_MLX90614()
     // Use the object() and ambient() functions to grab the object and ambient
     // temperatures.
     // They'll be floats, calculated out to the unit you set with setUnit().
+    object=therm.object();
+    ambient=therm.ambient();
     Serial.print("Object: " + String(therm.object(), 2));
     Serial.println("C");
     Serial.print("Ambient: " + String(therm.ambient(), 2));
@@ -168,7 +180,7 @@ bool read_TSL2561()
     // reduce the integration time and/or gain.
     // For more information see the hookup guide at: https://learn.sparkfun.com/tutorials/getting-started-with-the-tsl2561-luminosity-sensor
 
-    double lux;   // Resulting lux value
+
     boolean good; // True if neither sensor is saturated
 
     // Perform lux calculation:
@@ -324,6 +336,7 @@ void read_AS3935()
       // Lightning! Now how far away is it? Distance estimation takes into
       // account any previously seen events in the last 15 seconds.
       byte distance = lightning.distanceToStorm();
+      lightning_distanceToStorm=lightning.distanceToStorm();
       Serial.print("Approximately: ");
       Serial.print(distance);
       Serial.println("km away!");
@@ -358,43 +371,85 @@ bool read_TSL237()
   }
   else
   {
-  Serial.println("SQM not available");
-  return false;
+    Serial.println("SQM not available");
+    return false;
   }
 }
 
-void read_particle() 
+void read_particle()
 {
-  int count=0;
-    starttime = millis();//get the current time;
-    while(1)
-    {
-      count++;
+  int count = 0;
+  starttime = millis(); // get the current time;
+  while (1)
+  {
+    count++;
     duration = pulseIn(particle_pin, LOW);
-    lowpulseoccupancy = lowpulseoccupancy+duration;
- 
-    if ((millis()-starttime) > sampletime_ms)//if the sampel time == 100ms
+    lowpulseoccupancy = lowpulseoccupancy + duration;
+
+    if ((millis() - starttime) > sampletime_ms) // if the sampel time == 100ms
     {
-        ratio = lowpulseoccupancy/(sampletime_ms*10.0);  // Integer percentage 0=>100
-        temp_concentration = 1.1*pow(ratio,3)-3.8*pow(ratio,2)+520*ratio+0.62; // using spec sheet curve
-        if(temp_concentration!=0.62 && temp_concentration!=0)
-        {
-        concentration=temp_concentration;
-        }
-        lowpulseoccupancy = 0;
-        starttime = millis();
-        if(concentration==temp_concentration || count>particle_retries)
-        {
-          break;
-        }
+      ratio = lowpulseoccupancy / (sampletime_ms * 10.0);                                  // Integer percentage 0=>100
+      temp_concentration = 1.1 * pow(ratio, 3) - 3.8 * pow(ratio, 2) + 520 * ratio + 0.62; // using spec sheet curve
+      if (temp_concentration != 0.62 && temp_concentration != 0)
+      {
+        concentration = temp_concentration;
+      }
+      lowpulseoccupancy = 0;
+      starttime = millis();
+      if (concentration == temp_concentration || count > particle_retries)
+      {
+        break;
+      }
     }
+  }
+}
+
+bool post_data() {
+
+    //Check WiFi connection status
+    if(WiFi.status()== WL_CONNECTED){
+      WiFiClient client;
+      HTTPClient http;
+
+      std::stringstream data;
+      data << "{\"raining\":\"" << raining << "\",\"mySQMreading\":\""<< mySQMreading << "\",\"irradiance\":\""<< irradiance << "\",\"nelm\":\""<< nelm << "\",\"concentration\":\""<< concentration << "\",\"object\":\""<< object << "\",\"ambient\":\""<< ambient << "\",\"lux\":\""<< lux << "\"}";
+      std::string s=data.str();
+      // Your Domain name with URL path or IP address with path
+      http.begin(client, serverName);
+      // If you need an HTTP request with a content type: application/json, use the following:
+      http.addHeader("Content-Type", "application/json");
+      int httpResponseCode = http.POST(s.c_str());
+
+     
+      Serial.print("HTTP Response code: ");
+      Serial.println(httpResponseCode);
+      Serial.println(s.c_str());
+        
+      // Free resources
+      http.end();
+      return true;
     }
+    else {
+      Serial.println("WiFi Disconnected");
+      return false;
+    }
+
 }
 
 void setup()
 {
   Serial.begin(115200); // Initialize Serial to log output
-  Wire.begin();         // I2C bus
+  Serial.println("Started :)");
+  // Set WiFi to station mode and disconnect from an AP if it was previously connected
+  esp_wifi_start();
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  delay(100);
+
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  Serial.println("Connecting...");
+
+  Wire.begin(); // I2C bus
 
   init_MLX90614();
   init_TSL2561();
@@ -402,26 +457,49 @@ void setup()
 
   FreqCountESP.begin(SQMpin, 1000);
   pinMode(rainS_DO, INPUT);
-  pinMode(particle_pin,INPUT);
+  pinMode(particle_pin, INPUT);
 }
-
 
 void loop()
 {
-  //Serial.println(getCpuFrequencyMhz());
+  // Serial.println(getCpuFrequencyMhz());
   read_MLX90614();
   read_TSL2561();
   read_particle();
   read_AS3935();
   read_rain();
-  Serial.print((int)(concentration/0.0002831685));
+  Serial.print((int)(concentration / 0.0002831685));
   Serial.println("p/m3");
   read_TSL237();
+  /*
+  int i = 0;
+  while (WiFi.status() != WL_CONNECTED && i<50)
+  {
+    // Check to see if connecting failed.
+    // This is due to incorrect credentials
+    if (WiFi.status() == WL_CONNECT_FAILED)
+    {
+      i=50;
+    }
+    delay(100);
+  }*/
+
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    Serial.println("WiFi connected");
+    Serial.println("IP address: ");
+    Serial.println(WiFi.localIP());
+    post_data();
+  }
 
   Serial.println();
 
-  //esp_wifi_stop();
-  esp_sleep_enable_timer_wakeup(uS_FACTOR*SLEEPTIME_s);
+  esp_sleep_enable_timer_wakeup(uS_FACTOR * SLEEPTIME_s);
+
+  WiFi.disconnect(true);     // Disconnect from the network
+  WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
+  esp_wifi_stop();
   Serial.println("Going to sleep now");
+
   esp_deep_sleep_start();
 }

@@ -5,7 +5,11 @@
 #define mydefines_h
 
 // WiFi credentials.
+const char* WIFI_SSID = "FRITZ!Box 7590 RN";
+const char* WIFI_PASS = "63341235201028204472";
 
+//Your Domain name with URL path or IP address with path
+const char* serverName = "http://192.168.188.38:5000/SQM";
 
 
 #define particle_pin           27                 //particle sensor pin; reciving the sensor values with it
@@ -27,7 +31,7 @@
 #define rainS_DO           35                 // the rain sensor digital port pin, raining=yes/no
 
 #define uS_FACTOR 1000000 /* Conversion factor for micro seconds to seconds */ 
-#define SLEEPTIME_s 5 /* Time ESP32 will go to sleep (in seconds) */
+#define SLEEPTIME_s 8 /* Time ESP32 will go to sleep (in seconds) */
 
 #define sqm_limit 21.83                 // mag limit for earth is 21.95
 
