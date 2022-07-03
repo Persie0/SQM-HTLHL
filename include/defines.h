@@ -4,12 +4,25 @@
 #ifndef mydefines_h
 #define mydefines_h
 
+// WiFi credentials.
+
 
 
 #define particle_pin           27                 //particle sensor pin; reciving the sensor values with it
 #define particle_retries    5
-#define lightning_pin           15                 //lightning Sensor Pin; reciving the sensor values with it
-#define SQMpin     25                 // TSL237 OUT to digital pin 5 (cannot change)
+
+#define lightning_pin           0                 //lightning Sensor Pin; reciving the sensor values with it
+// 0x03 is default, but the address can also be 0x02, or 0x01.
+// Adjust the address jumpers on the underside of the product.
+#define AS3935_ADDR 0x00
+#define INDOOR 0x12
+#define OUTDOOR 0xE
+#define LIGHTNING_INT 0x08
+#define DISTURBER_INT 0x04
+#define NOISE_INT 0x01
+
+
+#define SQMpin     25                 // TSL237 OUT to digital pin 25 (cannot change)
 #define rainS_AO           34                // the rain sensor analog port pin, voltage
 #define rainS_DO           35                 // the rain sensor digital port pin, raining=yes/no
 

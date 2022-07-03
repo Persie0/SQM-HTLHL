@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include "defines.h"
-
+#include "WiFi.h"
 #include <Wire.h>
 #include "SparkFun_AS3935.h"
 #include <SparkFunMLX90614.h>
@@ -31,14 +31,6 @@ float ratio = 0;
 float temp_concentration = 0;
 int concentration=0;
 
-// 0x03 is default, but the address can also be 0x02, or 0x01.
-// Adjust the address jumpers on the underside of the product.
-#define AS3935_ADDR 0x00
-#define INDOOR 0x12
-#define OUTDOOR 0xE
-#define LIGHTNING_INT 0x08
-#define DISTURBER_INT 0x04
-#define NOISE_INT 0x01
 
 // If you're using I-squared-C then keep the following line. Address is set to
 // default.
@@ -365,7 +357,10 @@ bool read_TSL237()
     return true;
   }
   else
+  {
+  Serial.println("SQM not available");
   return false;
+  }
 }
 
 void read_particle() 
@@ -413,14 +408,15 @@ void setup()
 
 void loop()
 {
+  //Serial.println(getCpuFrequencyMhz());
   read_MLX90614();
   read_TSL2561();
-  read_AS3935();
-  read_TSL237();
-  read_rain();
   read_particle();
+  read_AS3935();
+  read_rain();
   Serial.print((int)(concentration/0.0002831685));
   Serial.println("p/m3");
+  read_TSL237();
 
   Serial.println();
 
