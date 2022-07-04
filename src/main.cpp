@@ -66,10 +66,10 @@ void read_rain()
   else
   {
     raining = false;
-    Serial.print("NOT ");
+    
   }
 
-  Serial.println("raining");
+  
   /*
   rainVout = analogRead( rs_AO );
   millivolts = map(rainVout, 0, 1023, 0, 5000 );
@@ -80,9 +80,9 @@ bool init_MLX90614()
 {
   if (therm.begin() == false)
   { // Initialize thermal IR sensor
-    Serial.println("Qwiic IR thermometer did not acknowledge! Freezing!");
+    
   }
-  Serial.println("Qwiic IR Thermometer did acknowledge.");
+  
 
   therm.setUnit(TEMP_C); // Set the library's units to Farenheit
   // Alternatively, TEMP_F can be replaced with TEMP_C for Celsius or
@@ -101,10 +101,10 @@ void read_MLX90614()
     // They'll be floats, calculated out to the unit you set with setUnit().
     object = therm.object();
     ambient = therm.ambient();
-    Serial.print("Object: " + String(therm.object(), 2));
-    Serial.println("C");
-    Serial.print("Ambient: " + String(therm.ambient(), 2));
-    Serial.println("C");
+    
+    
+    
+    
   }
 }
 
@@ -187,13 +187,7 @@ bool read_TSL2561()
     good = light.getLux(gain, ms, data0, data1, lux);
 
     // Print out the results:
-
-    Serial.print(" lux: ");
-    Serial.print(lux);
-    if (good)
-      Serial.println(" (good)");
-    else
-      Serial.println(" (BAD)");
+      
     return true;
   }
   else
@@ -210,34 +204,24 @@ bool init_AS3935()
 
   if (!lightning.begin())
   { // Initialize the sensor.
-    Serial.println("Lightning Detector did not start up");
+    
     return false;
   }
   else
-    Serial.println("Schmow-ZoW, Lightning Detector Ready!\n");
+    
   // "Disturbers" are events that are false lightning events. If you find
   // yourself seeing a lot of disturbers you can have the chip not report those
   // events on the interrupt lines.
   // lightning.maskDisturber(true);
-  int maskVal = lightning.readMaskDisturber();
-  Serial.print("Are disturbers being masked: ");
-  if (maskVal == 1)
-    Serial.println("YES");
-  else if (maskVal == 0)
-    Serial.println("NO");
+
+    
 
   // The lightning detector defaults to an indoor setting (less
   // gain/sensitivity), if you plan on using this outdoors
   // uncomment the following line:
   lightning.setIndoorOutdoor(OUTDOOR);
   int enviVal = lightning.readIndoorOutdoor();
-  Serial.print("Are we set for indoor or outdoor: ");
-  if (enviVal == INDOOR)
-    Serial.println("Indoor.");
-  else if (enviVal == OUTDOOR)
-    Serial.println("Outdoor.");
-  else
-    Serial.println(enviVal, BIN);
+    
 
   // Noise floor setting from 1-7, one being the lowest. Default setting is
   // two. If you need to check the setting, the corresponding function for
@@ -246,8 +230,8 @@ bool init_AS3935()
   lightning.setNoiseLevel(noiseFloor);
 
   int noiseVal = lightning.readNoiseLevel();
-  Serial.print("Noise Level is set at: ");
-  Serial.println(noiseVal);
+  
+  
 
   // Watchdog threshold setting can be from 1-10, one being the lowest. Default setting is
   // two. If you need to check the setting, the corresponding function for
@@ -256,8 +240,8 @@ bool init_AS3935()
   lightning.watchdogThreshold(watchDogVal);
 
   int watchVal = lightning.readWatchdogThreshold();
-  Serial.print("Watchdog Threshold is set to: ");
-  Serial.println(watchVal);
+  
+  
 
   // Spike Rejection setting from 1-11, one being the lowest. Default setting is
   // two. If you need to check the setting, the corresponding function for
@@ -269,8 +253,8 @@ bool init_AS3935()
   lightning.spikeRejection(spike);
 
   int spikeVal = lightning.readSpikeRejection();
-  Serial.print("Spike Rejection is set to: ");
-  Serial.println(spikeVal);
+  
+  
 
   // This setting will change when the lightning detector issues an interrupt.
   // For example you will only get an interrupt after five lightning strikes
@@ -280,8 +264,8 @@ bool init_AS3935()
   lightning.lightningThreshold(lightningThresh);
 
   uint8_t lightVal = lightning.readLightningThreshold();
-  Serial.print("The number of strikes before interrupt is triggerd: ");
-  Serial.println(lightVal);
+  
+  
 
   // When the distance to the storm is estimated, it takes into account other
   // lightning that was sensed in the past 15 minutes. If you want to reset
@@ -299,9 +283,9 @@ bool init_AS3935()
   // lightning.powerDown();
   // delay(1000);
   // if( lightning.wakeUp() )
-  //  Serial.println("Successfully woken up!");
+  //  
   // else
-  // Serial.println("Error recalibrating internal osciallator on wake up.");
+  // 
 
   // Set too many features? Reset them all with the following function.
   // lightning.resetSettings();
@@ -317,27 +301,27 @@ void read_AS3935()
     intVal = lightning.readInterruptReg();
     if (intVal == NOISE_INT)
     {
-      Serial.println("Noise.");
+      
       // Too much noise? Uncomment the code below, a higher number means better
       // noise rejection.
       // lightning.setNoiseLevel(setNoiseLevel);
     }
     else if (intVal == DISTURBER_INT)
     {
-      Serial.println("Disturber.");
+      
       // Too many disturbers? Uncomment the code below, a higher number means better
       // disturber rejection.
       // lightning.watchdogThreshold(threshVal);
     }
     else if (intVal == LIGHTNING_INT)
     {
-      Serial.println("Lightning Strike Detected!");
+      
       // Lightning! Now how far away is it? Distance estimation takes into
       // account any previously seen events in the last 15 seconds.
       lightning_distanceToStorm = lightning.distanceToStorm();
-      Serial.print("Approximately: ");
-      Serial.print(lightning_distanceToStorm);
-      Serial.println("km away!");
+      
+      
+      
     }
   }
 }
@@ -363,13 +347,13 @@ bool read_TSL237()
     }
     nelm = 7.93 - 5.0 * log10((pow(10, (4.316 - (mySQMreading / 5.0))) + 1));
     irradiance = frequency / 2.3e3; // calculate irradiance as uW/(cm^2)
-    Serial.print(mySQMreading);
-    Serial.println("SQM");
+    
+    
     return true;
   }
   else
   {
-    Serial.println("SQM not available");
+    
     return false;
   }
 }
@@ -420,9 +404,9 @@ bool post_data()
     http.addHeader("Content-Type", "application/json");
     int httpResponseCode = http.POST(s.c_str());
 
-    Serial.print("HTTP Response code: ");
-    Serial.println(httpResponseCode);
-    Serial.println(s.c_str());
+    
+    
+    
 
     // Free resources
     http.end();
@@ -430,15 +414,13 @@ bool post_data()
   }
   else
   {
-    Serial.println("WiFi Disconnected");
+    
     return false;
   }
 }
 
 void setup()
 {
-  Serial.begin(115200); // Initialize Serial to log output
-  Serial.println("Started :)");
   // Set WiFi to station mode and disconnect from an AP if it was previously connected
   esp_wifi_start();
   WiFi.mode(WIFI_STA);
@@ -446,7 +428,7 @@ void setup()
   delay(100);
 
   WiFi.begin(WIFI_SSID, WIFI_PASS);
-  Serial.println("Connecting...");
+  
 
   Wire.begin(); // I2C bus
 
@@ -461,14 +443,14 @@ void setup()
 
 void loop()
 {
-  // Serial.println(getCpuFrequencyMhz());
+  // 
   read_MLX90614();
   read_TSL2561();
   read_particle();
   read_AS3935();
   read_rain();
-  Serial.print((int)(concentration / 0.0002831685));
-  Serial.println("p/m3");
+  
+  
   read_TSL237();
   /*
   int i = 0;
@@ -485,20 +467,20 @@ void loop()
 
   if (WiFi.status() == WL_CONNECTED)
   {
-    Serial.println("WiFi connected");
-    Serial.println("IP address: ");
-    Serial.println(WiFi.localIP());
+    
+    
+    
     post_data();
   }
 
-  Serial.println();
+  
 
   esp_sleep_enable_timer_wakeup(uS_FACTOR * SLEEPTIME_s);
 
   WiFi.disconnect(true);     // Disconnect from the network
   WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
   esp_wifi_stop();
-  Serial.println("Going to sleep now");
+  
 
   esp_deep_sleep_start();
 }
