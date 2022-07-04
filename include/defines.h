@@ -31,7 +31,7 @@ const char* serverName = "http://192.168.188.38:5000/SQM";
 #define rainS_DO           35                 // the rain sensor digital port pin, raining=yes/no
 
 #define uS_FACTOR 1000000 /* Conversion factor for micro seconds to seconds */ 
-#define SLEEPTIME_s 8 /* Time ESP32 will go to sleep (in seconds) */
+#define SLEEPTIME_s 180 /* Time ESP32 will go to sleep (in seconds) */
 
 #define sqm_limit 21.83                 // mag limit for earth is 21.95
 

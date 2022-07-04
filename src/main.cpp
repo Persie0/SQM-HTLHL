@@ -396,7 +396,7 @@ bool post_data()
     HTTPClient http;
 
     std::stringstream data;
-    data << "{\"raining\":\"" << raining << "\",\"mySQMreading\":\"" << mySQMreading << "\",\"irradiance\":\"" << irradiance << "\",\"nelm\":\"" << nelm << "\",\"concentration\":\"" << concentration << "\",\"object\":\"" << object << "\",\"ambient\":\"" << ambient << "\",\"lux\":\"" << lux << "\",\"lightning_distanceToStorm\":\"" << lightning_distanceToStorm << "\"}";
+    data << "{\"raining\":\"" << raining << "\",\"SQMreading\":\"" << mySQMreading << "\",\"irradiance\":\"" << irradiance << "\",\"nelm\":\"" << nelm << "\",\"concentration\":\"" << concentration << "\",\"object\":\"" << object << "\",\"ambient\":\"" << ambient << "\",\"lux\":\"" << lux << "\",\"lightning_distanceToStorm\":\"" << lightning_distanceToStorm << "\"}";
     std::string s = data.str();
     // Your Domain name with URL path or IP address with path
     http.begin(client, serverName);
@@ -467,9 +467,6 @@ void loop()
 
   if (WiFi.status() == WL_CONNECTED)
   {
-    
-    
-    
     post_data();
   }
 
