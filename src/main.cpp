@@ -15,9 +15,9 @@ bool raining;
 
 float ambient, object;
 
-    double lux;   // Resulting lux value
+double lux; // Resulting lux value
 
-    uint8_t lightning_distanceToStorm;
+int lightning_distanceToStorm = -1;
 
 // TSL237 Sensor
 float mySQMreading = 0.0; // the SQM value, sky magnitude
@@ -39,7 +39,7 @@ unsigned long sampletime_ms = 3000; // sample 100ms ;
 unsigned long lowpulseoccupancy = 0;
 float ratio = 0;
 float temp_concentration = 0;
-int concentration = 0;
+int concentration = -1;
 
 // If you're using I-squared-C then keep the following line. Address is set to
 // default.
@@ -54,8 +54,8 @@ byte lightningThresh = 1;
 // event issued by the lightning detector.
 byte intVal = 0;
 
-      WiFiClient client;
-      HTTPClient http;
+WiFiClient client;
+HTTPClient http;
 
 void read_rain()
 {
@@ -99,8 +99,8 @@ void read_MLX90614()
     // Use the object() and ambient() functions to grab the object and ambient
     // temperatures.
     // They'll be floats, calculated out to the unit you set with setUnit().
-    object=therm.object();
-    ambient=therm.ambient();
+    object = therm.object();
+    ambient = therm.ambient();
     Serial.print("Object: " + String(therm.object(), 2));
     Serial.println("C");
     Serial.print("Ambient: " + String(therm.ambient(), 2));
@@ -179,7 +179,6 @@ bool read_TSL2561()
     // saturated (too much light). If this happens, you can
     // reduce the integration time and/or gain.
     // For more information see the hookup guide at: https://learn.sparkfun.com/tutorials/getting-started-with-the-tsl2561-luminosity-sensor
-
 
     boolean good; // True if neither sensor is saturated
 
@@ -335,10 +334,9 @@ void read_AS3935()
       Serial.println("Lightning Strike Detected!");
       // Lightning! Now how far away is it? Distance estimation takes into
       // account any previously seen events in the last 15 seconds.
-      byte distance = lightning.distanceToStorm();
-      lightning_distanceToStorm=lightning.distanceToStorm();
+      lightning_distanceToStorm = lightning.distanceToStorm();
       Serial.print("Approximately: ");
-      Serial.print(distance);
+      Serial.print(lightning_distanceToStorm);
       Serial.println("km away!");
     }
   }
@@ -404,36 +402,37 @@ void read_particle()
   }
 }
 
-bool post_data() {
+bool post_data()
+{
 
-    //Check WiFi connection status
-    if(WiFi.status()== WL_CONNECTED){
-      WiFiClient client;
-      HTTPClient http;
+  // Check WiFi connection status
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    WiFiClient client;
+    HTTPClient http;
 
-      std::stringstream data;
-      data << "{\"raining\":\"" << raining << "\",\"mySQMreading\":\""<< mySQMreading << "\",\"irradiance\":\""<< irradiance << "\",\"nelm\":\""<< nelm << "\",\"concentration\":\""<< concentration << "\",\"object\":\""<< object << "\",\"ambient\":\""<< ambient << "\",\"lux\":\""<< lux << "\"}";
-      std::string s=data.str();
-      // Your Domain name with URL path or IP address with path
-      http.begin(client, serverName);
-      // If you need an HTTP request with a content type: application/json, use the following:
-      http.addHeader("Content-Type", "application/json");
-      int httpResponseCode = http.POST(s.c_str());
+    std::stringstream data;
+    data << "{\"raining\":\"" << raining << "\",\"mySQMreading\":\"" << mySQMreading << "\",\"irradiance\":\"" << irradiance << "\",\"nelm\":\"" << nelm << "\",\"concentration\":\"" << concentration << "\",\"object\":\"" << object << "\",\"ambient\":\"" << ambient << "\",\"lux\":\"" << lux << "\",\"lightning_distanceToStorm\":\"" << lightning_distanceToStorm << "\"}";
+    std::string s = data.str();
+    // Your Domain name with URL path or IP address with path
+    http.begin(client, serverName);
+    // If you need an HTTP request with a content type: application/json, use the following:
+    http.addHeader("Content-Type", "application/json");
+    int httpResponseCode = http.POST(s.c_str());
 
-     
-      Serial.print("HTTP Response code: ");
-      Serial.println(httpResponseCode);
-      Serial.println(s.c_str());
-        
-      // Free resources
-      http.end();
-      return true;
-    }
-    else {
-      Serial.println("WiFi Disconnected");
-      return false;
-    }
+    Serial.print("HTTP Response code: ");
+    Serial.println(httpResponseCode);
+    Serial.println(s.c_str());
 
+    // Free resources
+    http.end();
+    return true;
+  }
+  else
+  {
+    Serial.println("WiFi Disconnected");
+    return false;
+  }
 }
 
 void setup()
