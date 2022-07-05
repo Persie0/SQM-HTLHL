@@ -2,7 +2,6 @@
 #include "defines.h"
 #include <Wire.h>
 #include "SparkFun_AS3935.h"
-#include <SparkFunMLX90614.h>
 #include <SparkFunTSL2561.h>
 #include "FreqCountESP.h"
 #include "esp_wifi.h"
@@ -10,22 +9,29 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <sstream>
+#include <SparkFunMLX90614.h>
 
-bool raining;
+// 0x03 is default, but the address can also be 0x02, or 0x01.
+// Adjust the address jumpers on the underside of the product.
+#define AS3935_ADDR 0x00
+#define INDOOR 0x12
+#define OUTDOOR 0xE
+#define LIGHTNING_INT 0x08
+#define DISTURBER_INT 0x04
+#define NOISE_INT 0x01
 
-float ambient, object;
 
-double lux; // Resulting lux value
+#define uS_FACTOR 1000000 /* Conversion factor for micro seconds to seconds */ 
 
+bool raining=-1;
+float ambient, object=-1;
+double lux=-1; // Resulting lux value
 int lightning_distanceToStorm = -1;
-
-// TSL237 Sensor
 float mySQMreading = 0.0; // the SQM value, sky magnitude
 double irradiance = 1.0;
 double nelm = 1.0;
-uint32_t frequency = 1; // measured TSL237 frequency which is dependent on light                      // the SQM value, sky magnitude
+uint32_t frequency = 1; // measured TSL237 frequency which is dependent on light
 
-IRTherm therm; // Create an IRTherm object to interact with throughout
 
 // Create an SFE_TSL2561 object, here called "light":
 SFE_TSL2561 light;
@@ -44,18 +50,41 @@ int concentration = -1;
 // If you're using I-squared-C then keep the following line. Address is set to
 // default.
 SparkFun_AS3935 lightning(AS3935_ADDR);
-// Values for modifying the IC's settings. All of these values are set to their
-// default values.
-byte noiseFloor = 2;
-byte watchDogVal = 2;
-byte spike = 2;
-byte lightningThresh = 1;
 // This variable holds the number representing the lightning or non-lightning
 // event issued by the lightning detector.
 byte intVal = 0;
 
 WiFiClient client;
 HTTPClient http;
+
+
+IRTherm therm; // Create an IRTherm object to interact with throughout
+
+bool init_MLX90614()
+{
+    if (therm.begin() == false)
+    { // Initialize thermal IR sensor
+
+    }
+    therm.setUnit(TEMP_C); // Set the library's units to Fahrenheit
+    // Alternatively, TEMP_F can be replaced with TEMP_C for Celsius or
+    // TEMP_K for Kelvin.
+
+    return true;
+}
+
+void read_MLX90614()
+{
+    // Call therm.read() to read object and ambient temperatures from the sensor.
+    if (therm.read()) // On success, read() will return 1, on fail 0.
+    {
+        // Use the object() and ambient() functions to grab the object and ambient
+        // temperatures.
+        // They'll be floats, calculated out to the unit you set with setUnit().
+        object = therm.object();
+        ambient = therm.ambient();
+    }
+}
 
 void read_rain()
 {
@@ -66,47 +95,9 @@ void read_rain()
   else
   {
     raining = false;
-    
-  }
-
-  
-  /*
-  rainVout = analogRead( rs_AO );
-  millivolts = map(rainVout, 0, 1023, 0, 5000 );
-  volts = (float) millivolts / 1000.0;*/
-}
-
-bool init_MLX90614()
-{
-  if (therm.begin() == false)
-  { // Initialize thermal IR sensor
-    
-  }
-  
-
-  therm.setUnit(TEMP_C); // Set the library's units to Farenheit
-  // Alternatively, TEMP_F can be replaced with TEMP_C for Celsius or
-  // TEMP_K for Kelvin.
-
-  return true;
-}
-
-void read_MLX90614()
-{
-  // Call therm.read() to read object and ambient temperatures from the sensor.
-  if (therm.read()) // On success, read() will return 1, on fail 0.
-  {
-    // Use the object() and ambient() functions to grab the object and ambient
-    // temperatures.
-    // They'll be floats, calculated out to the unit you set with setUnit().
-    object = therm.object();
-    ambient = therm.ambient();
-    
-    
-    
-    
   }
 }
+
 
 bool init_TSL2561()
 {
@@ -132,14 +123,14 @@ bool init_TSL2561()
   // If gain = false (0), device is set to low gain (1X)
   // If gain = high (1), device is set to high gain (16X)
 
-  gain = 0;
+  gain = 1;
 
   // If time = 0, integration will be 13.7ms
   // If time = 1, integration will be 101ms
   // If time = 2, integration will be 402ms
   // If time = 3, use manual start / stop to perform your own integration
 
-  unsigned char time = 2;
+  unsigned char time = 0;
 
   // setTiming() will set the third parameter (ms) to the
   // requested integration time in ms (this will be useful later):
@@ -347,24 +338,19 @@ bool read_TSL237()
     }
     nelm = 7.93 - 5.0 * log10((pow(10, (4.316 - (mySQMreading / 5.0))) + 1));
     irradiance = frequency / 2.3e3; // calculate irradiance as uW/(cm^2)
-    
-    
     return true;
   }
   else
   {
-    
     return false;
   }
 }
 
 void read_particle()
 {
-  int count = 0;
   starttime = millis(); // get the current time;
-  while (1)
+  while ((millis() - starttime) < sampletime_ms)
   {
-    count++;
     duration = pulseIn(particle_pin, LOW);
     lowpulseoccupancy = lowpulseoccupancy + duration;
 
@@ -372,15 +358,9 @@ void read_particle()
     {
       ratio = lowpulseoccupancy / (sampletime_ms * 10.0);                                  // Integer percentage 0=>100
       temp_concentration = 1.1 * pow(ratio, 3) - 3.8 * pow(ratio, 2) + 520 * ratio + 0.62; // using spec sheet curve
-      if (temp_concentration != 0.62 && temp_concentration != 0)
+      if (temp_concentration != 0.62)
       {
         concentration = temp_concentration;
-      }
-      lowpulseoccupancy = 0;
-      starttime = millis();
-      if (concentration == temp_concentration || count > particle_retries)
-      {
-        break;
       }
     }
   }
@@ -403,18 +383,12 @@ bool post_data()
     // If you need an HTTP request with a content type: application/json, use the following:
     http.addHeader("Content-Type", "application/json");
     int httpResponseCode = http.POST(s.c_str());
-
-    
-    
-    
-
     // Free resources
     http.end();
     return true;
   }
   else
   {
-    
     return false;
   }
 }
@@ -424,7 +398,7 @@ void setup()
   // Set WiFi to station mode and disconnect from an AP if it was previously connected
   esp_wifi_start();
   WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
+  //WiFi.disconnect();
   delay(100);
 
   WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -474,7 +448,7 @@ void loop()
 
   esp_sleep_enable_timer_wakeup(uS_FACTOR * SLEEPTIME_s);
 
-  WiFi.disconnect(true);     // Disconnect from the network
+  //WiFi.disconnect(true);     // Disconnect from the network
   WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
   esp_wifi_stop();
   
