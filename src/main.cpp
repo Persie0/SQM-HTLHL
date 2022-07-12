@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "defines.h"
+#include "settings.h"
 #include <Wire.h>
 #include "SparkFun_AS3935.h"
 #include <SparkFunTSL2561.h>
@@ -39,7 +39,7 @@ SFE_TSL2561 light;
 boolean gain;    // Gain setting, 0 = X1, 1 = X16;
 unsigned int ms; // Integration ("shutter") time in milliseconds
 
-unsigned long duration;
+volatile unsigned long duration;
 unsigned long starttime;
 unsigned long sampletime_ms = 3000; // sample 100ms ;
 unsigned long lowpulseoccupancy = 0;
@@ -399,10 +399,12 @@ void setup()
   esp_wifi_start();
   WiFi.mode(WIFI_STA);
   //WiFi.disconnect();
-  delay(100);
 
   WiFi.begin(WIFI_SSID, WIFI_PASS);
-  
+  pinMode(EN_3V3, OUTPUT); 
+  pinMode(EN_5V, OUTPUT); 
+  digitalWrite(EN_3V3, HIGH);
+  digitalWrite(EN_5V, HIGH);
 
   Wire.begin(); // I2C bus
 
@@ -452,6 +454,7 @@ void loop()
   WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
   esp_wifi_stop();
   
-
+  digitalWrite(EN_3V3, LOW);
+  digitalWrite(EN_5V, LOW);
   esp_deep_sleep_start();
 }

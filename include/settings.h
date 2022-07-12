@@ -6,8 +6,8 @@
 
 
 // WiFi credentials.
-const char* WIFI_SSID = "FRITZ!Box 7590 RN";
-const char* WIFI_PASS = "63341235201028204472";
+const char* WIFI_SSID = "";
+const char* WIFI_PASS = "";
 //Your Domain name with URL path or IP address with path
 const char* serverName = "http://192.168.188.38:5000/SQM";
 
@@ -29,6 +29,8 @@ byte lightningThresh = 1;
 #define rainS_DO           35                 // the rain sensor digital port pin, raining=yes/no
 
 #define SLEEPTIME_s 5 /* Time ESP32 will go to sleep (in seconds) */
+#define EN_3V3          2                // power-control pin to enable the 3,3V for the sensors
+#define EN_5V          15                // power-control pin to enable the 5V for the sensors
 
 #define sqm_limit 21.83                 // mag limit for earth is 21.95
 
