@@ -393,6 +393,8 @@ bool post_data()
   }
 }
 
+
+
 void setup()
 {
   // Set WiFi to station mode and disconnect from an AP if it was previously connected
@@ -428,27 +430,21 @@ void loop()
   
   
   read_TSL237();
-  /*
-  int i = 0;
-  while (WiFi.status() != WL_CONNECTED && i<50)
-  {
-    // Check to see if connecting failed.
-    // This is due to incorrect credentials
-    if (WiFi.status() == WL_CONNECT_FAILED)
-    {
-      i=50;
-    }
-    delay(100);
-  }*/
+  
 
   if (WiFi.status() == WL_CONNECTED)
   {
     post_data();
+    esp_sleep_enable_timer_wakeup(uS_FACTOR * SLEEPTIME_s);
+  }
+  else
+  {
+    esp_sleep_enable_timer_wakeup(uS_FACTOR * 5);
   }
 
   
 
-  esp_sleep_enable_timer_wakeup(uS_FACTOR * SLEEPTIME_s);
+  
 
   //WiFi.disconnect(true);     // Disconnect from the network
   WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
