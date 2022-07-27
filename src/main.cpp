@@ -120,5 +120,5 @@ void loop()
   digitalWrite(EN_5V, LOW);
 
   //start deep sleep
-  esp_deep_sleep(sleepTime);
+  esp_deep_sleep(sleepTime*1000000);
 }
