@@ -23,6 +23,7 @@
 #include "sensor_rain.h"
 #include "sensor_SQM.h"
 
+//value doesnt get reset after deepsleep
 RTC_DATA_ATTR int noWifiCount = 0;
 int sleepTime=0;
 
@@ -105,7 +106,7 @@ void loop()
     //set sleep time = 5 sec
     ++noWifiCount;
     //not >= because after first reset it also has no Wifi
-    if(noWifiCount>5)
+    if(noWifiCount>NO_WIFI_MAX_RETRIES)
     {
       ESP.deepSleep(0);
     }
