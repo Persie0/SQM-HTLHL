@@ -108,7 +108,7 @@ void loop()
     //not >= because after first reset it also has no Wifi
     if(noWifiCount>NO_WIFI_MAX_RETRIES)
     {
-      ESP.deepSleep(0);
+      esp_deep_sleep(0);
     }
   }
 
