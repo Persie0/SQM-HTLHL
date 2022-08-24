@@ -15,6 +15,7 @@
 #include <HTTPClient.h>
 #include <sstream>
 #include "FreqCountESP.h"
+#include "SSD1306Wire.h"
 
 #include "sensor_lightning.h"
 #include "sensor_ir_temperature.h"
@@ -25,6 +26,9 @@
 
 //value doesnt get reset after deepsleep
 RTC_DATA_ATTR int noWifiCount = 0;
+RTC_DATA_ATTR int sendCount = 0;
+RTC_DATA_ATTR bool hasWIFI =  false;
+
 int sleepTime=0;
 
 //sensor values 
@@ -36,6 +40,23 @@ float mySQMreading = -1; // the SQM value, sky magnitude
 double irradiance = -1;
 double nelm = -1;
 int concentration = -1;
+
+// for 128x64 displays:
+SSD1306Wire display(0x3c, SDA, SCL);  // ADDRESS, SDA, SCL
+
+void DisplayText(String text) {
+  display.setFont(ArialMT_Plain_10);
+  display.setTextAlignment(TEXT_ALIGN_LEFT);
+  display.drawStringMaxWidth(0, 0, 128, text);
+  display.display();
+}
+
+void DisplayStatus(String status) {
+  display.setTextAlignment(TEXT_ALIGN_LEFT);
+  display.setFont(ArialMT_Plain_10);
+  display.drawString(0, 26, status);
+  display.display();
+}
 
 //send the sensor values via http post request
 bool post_data()
@@ -59,21 +80,27 @@ bool post_data()
 }
 
 
-
 void setup()
 {
-  // Set WiFi to station mode
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
-  WiFi.setTxPower(WIFI_POWER_19_5dBm);
-
   //enable the 5V/3,3V supply voltage for the sensors
   pinMode(EN_3V3, OUTPUT); 
   pinMode(EN_5V, OUTPUT); 
   digitalWrite(EN_3V3, HIGH);
   digitalWrite(EN_5V, HIGH);
 
+  // Set WiFi to station mode
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  WiFi.setTxPower(WIFI_POWER_19_5dBm);
+
+
   Wire.begin(); // I2C bus
+
+  display.init();
+  DisplayStatus("Status: on");
+   if(!hasWIFI){
+    DisplayText("Connecting to WIFI: try "+String(noWifiCount+1));
+  }
 
   init_MLX90614();
   init_TSL2561();
@@ -85,6 +112,7 @@ void setup()
 
 void loop()
 {
+    
   // read the sensor values
   read_MLX90614(ambient, object);
   read_TSL2561(lux);
@@ -96,18 +124,29 @@ void loop()
   if (WiFi.status() == WL_CONNECTED)
   {
     post_data();
+    hasWIFI=true;
+    DisplayText("Connected to WIFI - send data for the: "+ String(sendCount)+" time");
+    sendCount++;
     //set custom sleep time
     sleepTime=SLEEPTIME_s;
   }
   //else wait for connection
-  else
+  else if (noWifiCount==0)
   {
-    sleepTime=5;
-    //set sleep time = 5 sec
-    ++noWifiCount;
-    //not >= because after first reset it also has no Wifi
+    sleepTime=2;
+    //set sleep time = 2 sec
+    noWifiCount++;
+  }
+  else{
+    sleepTime=20;
+    hasWIFI=false;
+    //set sleep time = 20 sec
+    noWifiCount++;
+     //not >= because after first reset it also has no Wifi
     if(noWifiCount>NO_WIFI_MAX_RETRIES)
     {
+      DisplayText("Sleeping - Couldn't find WIFI");
+      //sleep forever
       esp_deep_sleep(0);
     }
   }
@@ -120,6 +159,7 @@ void loop()
   digitalWrite(EN_3V3, LOW);
   digitalWrite(EN_5V, LOW);
 
+  DisplayStatus("Status: sleeping");
   //start deep sleep
   esp_deep_sleep(sleepTime*1000000);
 }
