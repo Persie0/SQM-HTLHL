@@ -2,6 +2,8 @@
 #ifndef mydefines_h
 #define mydefines_h
 
+
+
     // ===========================================================
     //                 WIFI SETTINGS
     // ===========================================================
@@ -9,8 +11,10 @@
 // WiFi credentials.
 #define WIFI_SSID  "FRITZ!Box 7590 RN"
 #define WIFI_PASS  "63341235201028204472"
-//Your Domain name with URL path or IP address with path
-#define serverName "http://192.168.188.38:5000/SQM"
+//Post sensor values - Domain name with URL path or IP address with path
+#define sendserverName "http://192.168.188.38:5000/SQM"
+//Get settings - Domain name with URL path or IP address with path
+#define fetchserverName "http://192.168.188.38:5000/getsettings"
 
 
     // ===========================================================
@@ -21,17 +25,26 @@
 #define lightning_pin           0                 //lightning Sensor Pin; reciving the sensor values with it
 #define SQMpin     25                 // TSL237 OUT to digital pin 25
 #define rainS_DO           35                 // the rain sensor digital port pin, raining=yes/no
+
 #define EN_3V3          2                // power-control pin to enable the 3,3V for the sensors
 #define EN_5V          15                // power-control pin to enable the 5V for the sensors
+
+#define EN_Display          4                // power-control pin to enable the display
+#define EN_Lightning          17                // power-control pin to enable the Lightning sensor
+#define EN_DisplayGPIO          GPIO_NUM_4                // power-control pin to enable the Lightning sensor
+#define EN_LightningGPIO          GPIO_NUM_17                // power-control pin to enable the Lightning sensor
 
 
     // ===========================================================
     //                 ESP32 SETTINGS
     // ===========================================================
 
-#define SLEEPTIME_s 180                 /* Time ESP32 will go to sleep (in seconds) */
-#define NO_WIFI_MAX_RETRIES 5                 /* Time ESP32 will go to sleep (in seconds) */
+#define FALLBACK_SLEEPTIME_s 180                 /* Time ESP32 will go to sleep (in seconds) */
+#define FALLBACK_NO_WIFI_MAX_RETRIES 5                 /* Time ESP32 will go to sleep (in seconds) */
+#define FALLBACK_DISPLAY_TIMEOUT_s 200                 /* Time Display will be on after start */
+#define FALLBACK_DISPLAY_ON true                 /* display on after start */
 
+#define NOWIFI_SLEEPTIME_s 25                 /* Time ESP32 will go to sleep (in seconds) */
 
     // ===========================================================
     //                 LIGHTNING SENSOR SETTINGS
