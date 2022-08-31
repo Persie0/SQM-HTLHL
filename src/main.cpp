@@ -14,10 +14,7 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <sstream>
-#include "soc/rtc_cntl_reg.h"
-#include "soc/rtc.h"
-#include "driver/rtc_io.h"
-#include "driver/rtc_io.h"
+#include <driver/rtc_io.h>
 #include <ArduinoJson.h>
 
 #include "FreqCountESP.h"
@@ -34,6 +31,7 @@
 RTC_DATA_ATTR int noWifiCount = 0;
 RTC_DATA_ATTR int sendCount = 0;
 RTC_DATA_ATTR int serverErrorCount = 0;
+RTC_DATA_ATTR bool settingsLoadCount = 0;
 
 RTC_DATA_ATTR bool hasInitialized = false;
 RTC_DATA_ATTR bool firstBoot = true;
@@ -50,7 +48,7 @@ int sleepTime = 0;
 bool sleepForever=false;
 
 // sensor values
-bool raining = -1;
+bool raining = false;
 float ambient, object = -1;
 double lux = -1; // Resulting lux value
 int lightning_distanceToStorm = -1;
@@ -66,7 +64,7 @@ void DisplayStatus()
 {
   if (DISPLAY_ON)
   {
-    display.clear();
+    display.init();
     display.setFont(ArialMT_Plain_10);
     display.setTextAlignment(TEXT_ALIGN_LEFT);
     if(sleepForever){
@@ -85,11 +83,11 @@ void DisplayStatus()
     }
     if (hasWIFI)
     {
-      display.drawStringMaxWidth(0, 12, 128, "send for " + String(sendCount) + " time");
+      display.drawStringMaxWidth(0, 12, 128, "send count: " + String(sendCount));
     }
     else
     {
-      display.drawStringMaxWidth(0, 12, 128, "retried for " + String(sendCount) + " time");
+      display.drawStringMaxWidth(0, 12, 128, "retry count: " + String(sendCount));
     }
     if (settingsLoaded)
     {
@@ -101,7 +99,10 @@ void DisplayStatus()
     }
     if (serverError)
     {
-      display.drawStringMaxWidth(0, 36, 128, "server error - check if running");
+      display.drawStringMaxWidth(0, 36, 128, "server error!");
+    }
+    else{
+      display.drawStringMaxWidth(0, 36, 128, "server is running");
     }
     }
     display.display();
@@ -118,19 +119,30 @@ bool fetch_settings()
   http.useHTTP10(true);
   http.begin(client, fetchserverName);
   int httpResponseCode = http.GET();
-
   if (httpResponseCode == 200)
   {
     // Parse response
     DynamicJsonDocument doc(2048);
     deserializeJson(doc, http.getStream());
     // Read values
-    SLEEPTIME_s = doc["SLEEPTIME_s"].as<int>();
-    NO_WIFI_MAX_RETRIES = doc["NO_WIFI_MAX_RETRIES"].as<int>();
-    DISPLAY_TIMEOUT_s = doc["DISPLAY_TIMEOUT_s"].as<int>();
-    DISPLAY_ON = doc["DISPLAY_ON"].as<bool>();
+    if(doc.containsKey("SLEEPTIME_s"))
+    {
+      SLEEPTIME_s = doc["SLEEPTIME_s"].as<int>();
+    }
+       if(doc.containsKey("sqm_limit"))
+    {
+      SLEEPTIME_s = doc["sqm_limit"].as<double>();
+    }
+       if(doc.containsKey("DISPLAY_TIMEOUT_s"))
+    {
+      SLEEPTIME_s = doc["DISPLAY_TIMEOUT_s"].as<int>();
+    }
+       if(doc.containsKey("DISPLAY_ON"))
+    {
+      SLEEPTIME_s = doc["DISPLAY_ON"].as<bool>();
+    }
+  
   }
-
   // Disconnect
   http.end();
   if (httpResponseCode == 200)
@@ -161,7 +173,7 @@ bool post_data()
   int httpResponseCode = http.POST(s.c_str());
   // Free resources
   http.end();
-  if (httpResponseCode = 200)
+  if (httpResponseCode == 200)
   {
     return true;
   }
@@ -182,8 +194,9 @@ void setup()
   // fix bug not connecting to wifi
   if (firstBoot)
   {
+     if (WiFi.status() != WL_CONNECTED){
     firstBoot = false;
-    esp_deep_sleep(1000000);
+    esp_deep_sleep(2000000);}
   }
 
   Wire.begin(); // I2C bus begin, so can talk to display
@@ -191,20 +204,22 @@ void setup()
   // fetch settings once from server, enable display if set
   if (!hasInitialized)
   {
-    settingsLoaded = fetch_settings();
-    // enable the 3,3V supply voltage for the display
+    hasInitialized = true;
+          // enable the 3,3V supply voltage for the display
     if (DISPLAY_ON)
     {
       pinMode(EN_Display, OUTPUT);
       digitalWrite(EN_Display, HIGH);
-      // 1ms delay
-      delay(1);
-      display.init();
-      // hold GPIO voltage in deepsleep
-      gpio_hold_en(EN_DisplayGPIO);
-    }
+     //gpio_hold_en(EN_DisplayGPIO);
+      rtc_gpio_init(EN_DisplayGPIO); //initialize the RTC GPIO port
+    rtc_gpio_set_direction(EN_DisplayGPIO, RTC_GPIO_MODE_OUTPUT_ONLY); //set the port to output only mode
+    rtc_gpio_hold_dis(EN_DisplayGPIO); //disable hold before setting the level
 
-    hasInitialized = true;
+    rtc_gpio_set_level(EN_DisplayGPIO, 1); //set high/low
+
+    //gpio_deep_sleep_hold_en();
+    rtc_gpio_hold_en(EN_DisplayGPIO); // enable hold for the RTC GPIO port
+    }
   }
 
   // enable the 5V/3,3V supply voltage for the sensors
@@ -214,7 +229,6 @@ void setup()
   digitalWrite(EN_Lightning, HIGH);
   digitalWrite(EN_3V3, HIGH);
   digitalWrite(EN_5V, HIGH);
-  gpio_hold_en(EN_LightningGPIO);
 
   init_MLX90614();
   init_TSL2561();
@@ -222,6 +236,7 @@ void setup()
   FreqCountESP.begin(SQMpin, 1000);
   pinMode(rainS_DO, INPUT);
   pinMode(particle_pin, INPUT);
+      //gpio_hold_en(EN_LightningGPIO);
 }
 
 void loop()
@@ -236,7 +251,7 @@ void loop()
   read_TSL237(mySQMreading, irradiance, nelm);
 
   // turn display off after set time
-  if (DISPLAY_ON && hasWIFI && (DISPLAY_TIMEOUT_s < ((sendCount)*SLEEPTIME_s + (noWifiCount) * (NOWIFI_SLEEPTIME_s + 6))))
+  if (DISPLAY_ON && hasWIFI && (DISPLAY_TIMEOUT_s < ((sendCount*SLEEPTIME_s) + (noWifiCount * (NOWIFI_SLEEPTIME_s + 6)))))
   {
     // disable sensor supply voltage
     DISPLAY_ON = false;
@@ -246,7 +261,13 @@ void loop()
   // send data if connected
   if (WiFi.status() == WL_CONNECTED)
   {
-    serverError = post_data();
+    if(!settingsLoaded){
+      settingsLoaded=fetch_settings();
+    }
+    serverError = !post_data();
+    if(serverError){
+      serverErrorCount++;
+    }
     hasWIFI = true;
     sendCount++;
     // set custom sleep time
@@ -269,7 +290,7 @@ void loop()
     }
   }
 
-  if(serverErrorCount>sendCount && serverErrorCount > noWifiCount){
+  if(serverErrorCount>sendCount && serverErrorCount > NO_WIFI_MAX_RETRIES){
       // sleep forever
       sleepTime = 9999999;
       sleepForever=true;
@@ -281,11 +302,10 @@ void loop()
     digitalWrite(EN_Display, HIGH);
     // hold GPIO voltage in deepsleep
     gpio_hold_en(EN_DisplayGPIO);
-    delay(1);
-    display.init();
   }
 
   DisplayStatus();
+  gpio_deep_sleep_hold_en();
 
   WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
   // esp_wifi_stop();
