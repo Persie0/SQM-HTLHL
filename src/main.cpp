@@ -52,7 +52,7 @@ bool raining = false;
 float ambient, object = -1;
 double lux = -1; // Resulting lux value
 int lightning_distanceToStorm = -1;
-float mySQMreading = -1; // the SQM value, sky magnitude
+float SQMreading = -1; // the SQM value, sky magnitude
 double irradiance = -1;
 double nelm = -1;
 int concentration = -1;
@@ -129,17 +129,13 @@ bool fetch_settings()
     {
       SLEEPTIME_s = doc["SLEEPTIME_s"].as<int>();
     }
-       if(doc.containsKey("sqm_limit"))
-    {
-      SLEEPTIME_s = doc["sqm_limit"].as<double>();
-    }
        if(doc.containsKey("DISPLAY_TIMEOUT_s"))
     {
-      SLEEPTIME_s = doc["DISPLAY_TIMEOUT_s"].as<int>();
+      DISPLAY_TIMEOUT_s = doc["DISPLAY_TIMEOUT_s"].as<int>();
     }
        if(doc.containsKey("DISPLAY_ON"))
     {
-      SLEEPTIME_s = doc["DISPLAY_ON"].as<bool>();
+      DISPLAY_ON = doc["DISPLAY_ON"].as<bool>();
     }
   
   }
@@ -164,7 +160,7 @@ bool post_data()
 
   std::stringstream data;
   // create a json string
-  data << "{\"raining\":\"" << raining << "\",\"SQMreading\":\"" << mySQMreading << "\",\"irradiance\":\"" << irradiance << "\",\"nelm\":\"" << nelm << "\",\"concentration\":\"" << concentration << "\",\"object\":\"" << object << "\",\"ambient\":\"" << ambient << "\",\"lux\":\"" << lux << "\",\"lightning_distanceToStorm\":\"" << lightning_distanceToStorm << "\"}";
+  data << "{\"raining\":\"" << raining << "\",\"SQMreading\":\"" << SQMreading << "\",\"irradiance\":\"" << irradiance << "\",\"nelm\":\"" << nelm << "\",\"concentration\":\"" << concentration << "\",\"object\":\"" << object << "\",\"ambient\":\"" << ambient << "\",\"lux\":\"" << lux << "\",\"lightning_distanceToStorm\":\"" << lightning_distanceToStorm << "\"}";
   std::string s = data.str();
   // Your Domain name with URL path or IP address with path
   http.begin(client, sendserverName);
@@ -248,7 +244,7 @@ void loop()
   read_particle(concentration);
   read_AS3935(lightning_distanceToStorm);
   read_rain(raining);
-  read_TSL237(mySQMreading, irradiance, nelm);
+  read_TSL237(SQMreading, irradiance, nelm);
 
   // turn display off after set time
   if (DISPLAY_ON && hasWIFI && (DISPLAY_TIMEOUT_s < ((sendCount*SLEEPTIME_s) + (noWifiCount * (NOWIFI_SLEEPTIME_s + 6)))))
