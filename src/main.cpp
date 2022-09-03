@@ -181,7 +181,6 @@ bool post_data()
 
 void setup()
 {
-  Serial.begin(115200);
   // Enable & Set WiFi to station mode
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -247,13 +246,13 @@ void loop()
   read_TSL237(SQMreading, irradiance, nelm);
 
   // turn display off after set time
-  if (DISPLAY_ON && hasWIFI && (DISPLAY_TIMEOUT_s < ((sendCount*SLEEPTIME_s) + (noWifiCount * (NOWIFI_SLEEPTIME_s + 6)))))
+  if (DISPLAY_ON && hasWIFI && DISPLAY_TIMEOUT_s!=0 &&(DISPLAY_TIMEOUT_s < ((sendCount*SLEEPTIME_s) + (noWifiCount * (NOWIFI_SLEEPTIME_s + 6)))))
   {
     // disable sensor supply voltage
     DISPLAY_ON = false;
     digitalWrite(EN_Display, LOW);
   }
-
+  
   // send data if connected
   if (WiFi.status() == WL_CONNECTED)
   {

@@ -39,7 +39,7 @@
     //                 ESP32 SETTINGS
     // ===========================================================
 
-#define FALLBACK_SLEEPTIME_s 15                 /* Time ESP32 will go to sleep (in seconds) */
+#define FALLBACK_SLEEPTIME_s 180                 /* Time ESP32 will go to sleep (in seconds) */
 #define FALLBACK_NO_WIFI_MAX_RETRIES 5                 /* Time ESP32 will go to sleep (in seconds) */
 #define FALLBACK_DISPLAY_TIMEOUT_s 200                 /* Time Display will be on after start */
 #define FALLBACK_DISPLAY_ON true                 /* display on after start */
