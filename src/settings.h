@@ -11,10 +11,12 @@
 // WiFi credentials.
 #define WIFI_SSID  "HOTEL"
 #define WIFI_PASS  "Sporthotel"
+#define serverIP  "192.168.33.250"
+
 //Post sensor values - Domain name with URL path or IP address with path
-#define sendserverName "http://192.168.188.38:5000/SQM"
+#define sendserverName "http://"+String(serverIP)+":5000/SQM"
 //Get settings - Domain name with URL path or IP address with path
-#define fetchserverName "http://192.168.188.38:5000/getsettings"
+#define fetchserverName "http://"+String(serverIP)+":5000/getsettings"
 
 
     // ===========================================================
