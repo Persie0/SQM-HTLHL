@@ -34,7 +34,6 @@ RTC_DATA_ATTR int serverErrorCount = 0;
 RTC_DATA_ATTR bool settingsLoadCount = 0;
 
 RTC_DATA_ATTR bool hasInitialized = false;
-RTC_DATA_ATTR bool firstBoot = true;
 RTC_DATA_ATTR bool settingsLoaded = false;
 RTC_DATA_ATTR bool hasWIFI = false;
 RTC_DATA_ATTR bool serverError = false;
@@ -65,12 +64,12 @@ void DisplayStatus()
   if (DISPLAY_ON)
   {
     display.init();
-    display.setFont(ArialMT_Plain_10);
+    display.setFont(ArialMT_Plain_16);
     display.setTextAlignment(TEXT_ALIGN_LEFT);
     if(sleepForever){
       display.drawStringMaxWidth(0, 0, 128, "Sleeping forever");
-      display.drawStringMaxWidth(0, 12, 128, "no WIFI, server error");
-      display.drawStringMaxWidth(0, 24, 128, "or server not reachable");
+      display.drawStringMaxWidth(0, 16, 128, "no WIFI");
+      display.drawStringMaxWidth(0, 32, 128, "or server not reachable");
     }
     else{
     if (hasWIFI)
@@ -83,26 +82,28 @@ void DisplayStatus()
     }
     if (hasWIFI)
     {
-      display.drawStringMaxWidth(0, 12, 128, "send count: " + String(sendCount));
+      display.drawStringMaxWidth(0, 16, 128, "send count: " + String(sendCount));
     }
     else
     {
-      display.drawStringMaxWidth(0, 12, 128, "retry count: " + String(sendCount));
+      display.drawStringMaxWidth(0, 16, 128, "retry count: " + String(noWifiCount));
     }
     if (settingsLoaded)
     {
-      display.drawStringMaxWidth(0, 24, 128, "settings loaded");
+      display.drawStringMaxWidth(0, 32, 128, "settings loaded");
     }
     else
     {
-      display.drawStringMaxWidth(0, 24, 128, "settings NOT loaded");
+      display.drawStringMaxWidth(0, 32, 128, "settings NOT loaded");
     }
+    if(hasWIFI){
     if (serverError)
     {
       display.drawStringMaxWidth(0, 36, 128, "server error!");
     }
     else{
       display.drawStringMaxWidth(0, 36, 128, "server is running");
+    }
     }
     }
     display.display();
@@ -187,12 +188,7 @@ void setup()
   WiFi.setTxPower(WIFI_POWER_19_5dBm);
 
   // fix bug not connecting to wifi
-  if (firstBoot)
-  {
-     if (WiFi.status() != WL_CONNECTED){
-    firstBoot = false;
-    esp_deep_sleep(2000000);}
-  }
+
 
   Wire.begin(); // I2C bus begin, so can talk to display
 

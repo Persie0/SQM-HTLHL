@@ -9,8 +9,8 @@
     // ===========================================================
 
 // WiFi credentials.
-#define WIFI_SSID  "FRITZ!Box 7590 RN"
-#define WIFI_PASS  "63341235201028204472"
+#define WIFI_SSID  "HOTEL"
+#define WIFI_PASS  "Sporthotel"
 //Post sensor values - Domain name with URL path or IP address with path
 #define sendserverName "http://192.168.188.38:5000/SQM"
 //Get settings - Domain name with URL path or IP address with path
@@ -44,7 +44,7 @@
 #define FALLBACK_DISPLAY_TIMEOUT_s 200                 /* Time Display will be on after start */
 #define FALLBACK_DISPLAY_ON true                 /* display on after start */
 
-#define NOWIFI_SLEEPTIME_s 25                 /* Time ESP32 will go to sleep (in seconds) */
+#define NOWIFI_SLEEPTIME_s 30                 /* Time ESP32 will go to sleep (in seconds)if no WIFI */
 
     // ===========================================================
     //                 LIGHTNING SENSOR SETTINGS
