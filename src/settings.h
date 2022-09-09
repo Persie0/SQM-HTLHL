@@ -40,10 +40,12 @@
 
 #define FALLBACK_SLEEPTIME_s 180                 /* Time ESP32 will go to sleep (in seconds) */
 #define FALLBACK_NO_WIFI_MAX_RETRIES 5                 /* Time ESP32 will go to sleep (in seconds) */
-#define FALLBACK_DISPLAY_TIMEOUT_s 0                 /* Time Display will be on after start */
+#define FALLBACK_DISPLAY_TIMEOUT_s 200                 /* Time Display will be on after start */
 #define FALLBACK_DISPLAY_ON true                 /* display on after start */
-
 #define NOWIFI_SLEEPTIME_s 25                 /* Time ESP32 will go to sleep (in seconds) */
+#define FALLBACK_ALWAYS_FETCH_SETTINGS false                 /* display on after start */
+
+#define FALLBACK_SQM_LIMIT 21.83                 // mag limit for earth is 21.95
 
     // ===========================================================
     //                 LIGHTNING SENSOR SETTINGS
@@ -106,11 +108,5 @@
 
 #define sampletime_ms 3000 //sample 3s
 
-
-    // ===========================================================
-    //                 SQM SENSOR SETTINGS
-    // ===========================================================
-
-#define sqm_limit 21.83                 // mag limit for earth is 21.95
 
 #endif

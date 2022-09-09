@@ -44,6 +44,8 @@ RTC_DATA_ATTR int SLEEPTIME_s = FALLBACK_SLEEPTIME_s;
 RTC_DATA_ATTR int NO_WIFI_MAX_RETRIES = FALLBACK_NO_WIFI_MAX_RETRIES;
 RTC_DATA_ATTR int DISPLAY_TIMEOUT_s = FALLBACK_DISPLAY_TIMEOUT_s;
 RTC_DATA_ATTR bool DISPLAY_ON = FALLBACK_DISPLAY_ON;
+RTC_DATA_ATTR bool ALWAYS_FETCH_SETTINGS = FALLBACK_ALWAYS_FETCH_SETTINGS;
+RTC_DATA_ATTR double SQM_LIMIT = FALLBACK_SQM_LIMIT;
 
 int sleepTime = 0;
 bool sleepForever = false;
@@ -53,7 +55,7 @@ bool raining = false;
 float ambient, object = -1;
 double lux = -1; // Resulting lux value
 int lightning_distanceToStorm = -1;
-float SQMreading = -1; // the SQM value, sky magnitude
+float luminosity = -1; // the SQM value, sky magnitude
 double irradiance = -1;
 double nelm = -1;
 int concentration = -1;
@@ -144,6 +146,14 @@ bool fetch_settings()
     {
       DISPLAY_ON = doc["DISPLAY_ON"].as<bool>();
     }
+        if (doc.containsKey("check_everytime"))
+    {
+      ALWAYS_FETCH_SETTINGS = doc["check_everytime"].as<bool>();
+    }
+        if (doc.containsKey("set_sqm_limit"))
+    {
+      SQM_LIMIT = doc["set_sqm_limit"].as<double>();
+    }
     // Disconnect
     http.end();
     return true;
@@ -162,7 +172,7 @@ bool post_data()
 
   std::stringstream data;
   // create a json string
-  data << "{\"raining\":\"" << raining << "\",\"SQMreading\":\"" << SQMreading << "\",\"irradiance\":\"" << irradiance << "\",\"nelm\":\"" << nelm << "\",\"concentration\":\"" << concentration << "\",\"object\":\"" << object << "\",\"ambient\":\"" << ambient << "\",\"lux\":\"" << lux << "\",\"lightning_distanceToStorm\":\"" << lightning_distanceToStorm << "\"}";
+  data << "{\"raining\":\"" << raining << "\",\"luminosity\":\"" << luminosity << "\",\"irradiance\":\"" << irradiance << "\",\"nelm\":\"" << nelm << "\",\"concentration\":\"" << concentration << "\",\"object\":\"" << object << "\",\"ambient\":\"" << ambient << "\",\"lux\":\"" << lux << "\",\"lightning_distanceToStorm\":\"" << lightning_distanceToStorm << "\"}";
   std::string s = data.str();
   // Your Domain name with URL path or IP address with path
   http.begin(client, sendserverName);
@@ -227,7 +237,7 @@ void loop()
   read_particle(concentration);
   read_AS3935(lightning_distanceToStorm);
   read_rain(raining);
-  read_TSL237(SQMreading, irradiance, nelm);
+  read_TSL237(luminosity, irradiance, nelm, SQM_LIMIT);
 
   // turn display off after set time
   if (DISPLAY_ON && hasWIFI && DISPLAY_TIMEOUT_s != 0 && (DISPLAY_TIMEOUT_s < ((sendCount * SLEEPTIME_s) + (noWifiCount * (NOWIFI_SLEEPTIME_s + 6)))))
@@ -240,7 +250,7 @@ void loop()
   // send data if connected
   if (WiFi.status() == WL_CONNECTED)
   {
-    if (!settingsLoaded)
+    if (!settingsLoaded || ALWAYS_FETCH_SETTINGS)
     {
       settingsLoaded = fetch_settings();
     }
