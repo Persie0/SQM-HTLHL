@@ -31,10 +31,7 @@
 #define EN_3V3          2                // power-control pin to enable the 3,3V for the sensors
 #define EN_5V          15                // power-control pin to enable the 5V for the sensors
 
-#define EN_Display          4                // power-control pin to enable the display
-#define EN_Lightning          17                // power-control pin to enable the Lightning sensor
-#define EN_DisplayGPIO          GPIO_NUM_4                // power-control pin to enable the Lightning sensor
-#define EN_LightningGPIO          GPIO_NUM_17                // power-control pin to enable the Lightning sensor
+#define EN_DisplayGPIO          GPIO_NUM_4                // power-control pin to enable the display
 
 
     // ===========================================================
@@ -43,7 +40,7 @@
 
 #define FALLBACK_SLEEPTIME_s 180                 /* Time ESP32 will go to sleep (in seconds) */
 #define FALLBACK_NO_WIFI_MAX_RETRIES 5                 /* Time ESP32 will go to sleep (in seconds) */
-#define FALLBACK_DISPLAY_TIMEOUT_s 200                 /* Time Display will be on after start */
+#define FALLBACK_DISPLAY_TIMEOUT_s 0                 /* Time Display will be on after start */
 #define FALLBACK_DISPLAY_ON true                 /* display on after start */
 
 #define NOWIFI_SLEEPTIME_s 25                 /* Time ESP32 will go to sleep (in seconds) */
