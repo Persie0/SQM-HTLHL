@@ -118,7 +118,7 @@ void DisplayStatus()
   }
 }
 
-// fetch setting from API
+// fetch settings from API server
 bool fetch_settings()
 {
   WiFiClient client; // or WiFiClientSecure for HTTPS
@@ -163,7 +163,7 @@ bool fetch_settings()
   return false;
 }
 
-// send the sensor values via http post request
+// send the sensor values via http post request to the server
 bool post_data()
 {
 
@@ -209,6 +209,7 @@ void setup()
   }
     if (DISPLAY_ON)
     {
+      //keep display on in deepsleep
       pinMode(EN_DisplayGPIO, OUTPUT);
       digitalWrite(EN_DisplayGPIO, HIGH);
       gpio_hold_en(EN_DisplayGPIO);
@@ -281,6 +282,7 @@ void loop()
     }
   }
 
+//if too couldnt send data too many times - sleep forever
   if (serverErrorCount > sendCount && serverErrorCount > NO_WIFI_MAX_RETRIES)
   {
     // sleep forever
@@ -288,6 +290,7 @@ void loop()
     sleepForever = true;
   }
 
+// if couldnt send data - turn display on again and show error message
   if ((!hasWIFI || serverError) && !DISPLAY_ON)
   {
     pinMode(EN_DisplayGPIO, OUTPUT);
@@ -297,7 +300,6 @@ void loop()
   }
 
   DisplayStatus();
-  // gpio_deep_sleep_hold_en();
 
   WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
   // esp_wifi_stop();
