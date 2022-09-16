@@ -9,6 +9,7 @@
  */
 
 #include <Arduino.h>
+#include <vector>
 #include "settings.h"
 #include <Wire.h>
 #include <WiFi.h>
@@ -28,6 +29,8 @@
 #include "sensors/sensor_dust.h"
 #include "sensors/sensor_rain.h"
 #include "sensors/sensor_SQM.h"
+
+using namespace std;
 
 // value doesnt get reset after deepsleep
 RTC_DATA_ATTR int noWifiCount = 0;
@@ -49,6 +52,7 @@ RTC_DATA_ATTR double SQM_LIMIT = FALLBACK_SQM_LIMIT;
 
 int sleepTime = 0;
 bool sleepForever = false;
+vector<String> errors;
 
 // sensor values
 bool raining = false;
@@ -70,48 +74,70 @@ void DisplayStatus()
     display.init();
     display.setFont(ArialMT_Plain_10);
     display.setTextAlignment(TEXT_ALIGN_LEFT);
-    if (sleepForever)
+    if (ESP_MODE == 1)
     {
-      display.drawStringMaxWidth(0, 0, 128, "Sleeping forever");
-      display.drawStringMaxWidth(0, 12, 128, "no WIFI, server error");
-      display.drawStringMaxWidth(0, 24, 128, "or server not reachable");
-    }
-    else
-    {
-      if (hasWIFI)
+      if (sleepForever)
       {
-        display.drawStringMaxWidth(0, 0, 128, "Connected to Wifi");
+        display.drawStringMaxWidth(0, 0, 128, "Sleeping forever");
+        display.drawStringMaxWidth(0, 12, 128, "no WIFI, server error");
+        display.drawStringMaxWidth(0, 24, 128, "or server not reachable");
       }
       else
       {
-        display.drawStringMaxWidth(0, 0, 128, "NO Wifi");
-      }
-      if (hasWIFI)
-      {
-        display.drawStringMaxWidth(0, 12, 128, "send count: " + String(sendCount));
-      }
-      else
-      {
-        display.drawStringMaxWidth(0, 12, 128, "retry count: " + String(noWifiCount));
-      }
-      if (settingsLoaded)
-      {
-        display.drawStringMaxWidth(0, 24, 128, "settings loaded");
-      }
-      else
-      {
-        display.drawStringMaxWidth(0, 24, 128, "settings NOT loaded");
-      }
-      if (hasWIFI)
-      {
-        if (serverError)
+        if (hasWIFI)
         {
-          display.drawStringMaxWidth(0, 36, 128, "server error!");
+          display.drawStringMaxWidth(0, 0, 128, "Connected to Wifi");
         }
         else
         {
-          display.drawStringMaxWidth(0, 36, 128, "server is running");
+          display.drawStringMaxWidth(0, 0, 128, "NO Wifi");
         }
+        if (hasWIFI)
+        {
+          display.drawStringMaxWidth(0, 12, 128, "send count: " + String(sendCount));
+        }
+        else
+        {
+          display.drawStringMaxWidth(0, 12, 128, "retry count: " + String(noWifiCount));
+        }
+        if (settingsLoaded)
+        {
+          display.drawStringMaxWidth(0, 24, 128, "settings loaded");
+        }
+        else
+        {
+          display.drawStringMaxWidth(0, 24, 128, "settings NOT loaded");
+        }
+        if (hasWIFI)
+        {
+          if (serverError)
+          {
+            display.drawStringMaxWidth(0, 36, 128, "server error!");
+          }
+          else
+          {
+            display.drawStringMaxWidth(0, 36, 128, "server is running");
+          }
+        }
+      }
+    }
+    else if (ESP_MODE == 0)
+    {
+      display.drawStringMaxWidth(0, 0, 128, "SQM: " + String(luminosity));
+      display.drawStringMaxWidth(0, 12, 128, "Airp.: " + String(concentration));
+      display.drawStringMaxWidth(0, 24, 128, "Lux: " + String(lux));
+      display.drawStringMaxWidth(0, 36, 128, "Raining: " + String(raining));
+      display.drawStringMaxWidth(0, 48, 128, "A&O: " + String(ambient) + "; " + String(object) + " °C");
+    }
+    else
+    {
+      if(errors.size()!=0){
+      for(int i=0; i<errors.size(); i++){
+        display.drawStringMaxWidth(0, 12*i, 128, errors[i]);
+      }
+      }
+      else{
+        display.drawStringMaxWidth(0, 0, 128, "No errors :)");
       }
     }
     display.display();
@@ -146,11 +172,11 @@ bool fetch_settings()
     {
       DISPLAY_ON = doc["DISPLAY_ON"].as<bool>();
     }
-        if (doc.containsKey("check_everytime"))
+    if (doc.containsKey("check_everytime"))
     {
       ALWAYS_FETCH_SETTINGS = doc["check_everytime"].as<bool>();
     }
-        if (doc.containsKey("set_sqm_limit"))
+    if (doc.containsKey("set_sqm_limit"))
     {
       SQM_LIMIT = doc["set_sqm_limit"].as<double>();
     }
@@ -193,6 +219,15 @@ bool post_data()
 
 void setup()
 {
+  // Serial.begin(115200);
+
+  // enable display if set
+  if (!hasInitialized)
+  {
+    hasInitialized = true;
+    // enable the 3,3V supply voltage for the display
+  }
+
   // Enable & Set WiFi to station mode
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
@@ -200,31 +235,34 @@ void setup()
 
   Wire.begin(); // I2C bus begin, so can talk to display
 
-  // enable display if set
-  if (!hasInitialized)
+  if (DISPLAY_ON)
   {
-    hasInitialized = true;
-    // enable the 3,3V supply voltage for the display
-
+    // keep display on in deepsleep
+    pinMode(EN_DisplayGPIO, OUTPUT);
+    digitalWrite(EN_DisplayGPIO, HIGH);
+    gpio_hold_en(EN_DisplayGPIO);
+    gpio_deep_sleep_hold_en();
   }
-    if (DISPLAY_ON)
-    {
-      //keep display on in deepsleep
-      pinMode(EN_DisplayGPIO, OUTPUT);
-      digitalWrite(EN_DisplayGPIO, HIGH);
-      gpio_hold_en(EN_DisplayGPIO);
-      gpio_deep_sleep_hold_en();
-    }
   // enable the 5V/3,3V supply voltage for the sensors
-  pinMode(EN_3V3, OUTPUT);
+ pinMode(EN_3V3, OUTPUT);
   pinMode(EN_5V, OUTPUT);
   digitalWrite(EN_3V3, HIGH);
   digitalWrite(EN_5V, HIGH);
+  delay(50);
 
-  init_MLX90614();
+  if(!init_MLX90614()){
+    errors.push_back("init_MLX90614");
+  }
   init_TSL2561();
+    if(!init_TSL2561()){
+    errors.push_back("init_TSL2561");
+  }
   init_AS3935();
-  FreqCountESP.begin(SQMpin, 1000);
+    if(!init_AS3935()){
+    errors.push_back("init_AS3935");
+  }
+  FreqCountESP.begin(SQMpin, 40);
+  delay(40);
   pinMode(rainS_DO, INPUT);
   pinMode(particle_pin, INPUT);
 }
@@ -232,13 +270,21 @@ void setup()
 void loop()
 {
 
+    if(!read_MLX90614(ambient, object)){
+    errors.push_back("read_MLX90614");
+  }
+    if(!read_TSL2561(lux)){
+    errors.push_back("read_TSL2561");
+  }
+      if(!read_AS3935(lightning_distanceToStorm)){
+    errors.push_back("read_AS3935");
+  }
+      if(!read_TSL237(luminosity, irradiance, nelm, SQM_LIMIT)){
+    errors.push_back("read_TSL237");
+  }
   // read the sensor values
-  read_MLX90614(ambient, object);
-  read_TSL2561(lux);
   read_particle(concentration);
-  read_AS3935(lightning_distanceToStorm);
   read_rain(raining);
-  read_TSL237(luminosity, irradiance, nelm, SQM_LIMIT);
 
   // turn display off after set time
   if (DISPLAY_ON && hasWIFI && DISPLAY_TIMEOUT_s != 0 && (DISPLAY_TIMEOUT_s < ((sendCount * SLEEPTIME_s) + (noWifiCount * (NOWIFI_SLEEPTIME_s + 6)))))
@@ -282,7 +328,7 @@ void loop()
     }
   }
 
-//if too couldnt send data too many times - sleep forever
+  // if too couldnt send data too many times - sleep forever
   if (serverErrorCount > sendCount && serverErrorCount > NO_WIFI_MAX_RETRIES)
   {
     // sleep forever
@@ -290,7 +336,7 @@ void loop()
     sleepForever = true;
   }
 
-// if couldnt send data - turn display on again and show error message
+  // if couldnt send data - turn display on again and show error message
   if ((!hasWIFI || serverError) && !DISPLAY_ON)
   {
     pinMode(EN_DisplayGPIO, OUTPUT);

@@ -23,8 +23,9 @@
     //                 PINS
     // ===========================================================
 
+//do not use GPIO0 - ESP32 wont boot correctly
 #define particle_pin           27                 //particle sensor pin; reciving the sensor values with it
-#define lightning_pin           0                 //lightning Sensor Pin; reciving the sensor values with it
+#define lightning_pin           13                 //lightning Sensor Pin; reciving the sensor values with it
 #define SQMpin     25                 // TSL237 OUT to digital pin 25
 #define rainS_DO           35                 // the rain sensor digital port pin, raining=yes/no
 
@@ -38,10 +39,13 @@
     //                 ESP32 SETTINGS
     // ===========================================================
 
-#define FALLBACK_SLEEPTIME_s 180                 /* Time ESP32 will go to sleep (in seconds) */
-#define FALLBACK_NO_WIFI_MAX_RETRIES 5                 /* Time ESP32 will go to sleep (in seconds) */
+  //Display
+#define ESP_MODE 0                 //0-Offline (just display sensor values), 1-Online (normal), 2-Test (testing sensors, showing errors on display)
 #define FALLBACK_DISPLAY_TIMEOUT_s 200                 /* Time Display will be on after start */
 #define FALLBACK_DISPLAY_ON true                 /* display on after start */
+
+#define FALLBACK_SLEEPTIME_s 180                 /* Time ESP32 will go to sleep (in seconds) */
+#define FALLBACK_NO_WIFI_MAX_RETRIES 5                 /* Time ESP32 will go to sleep (in seconds) */
 #define NOWIFI_SLEEPTIME_s 25                 /* Time ESP32 will go to sleep (in seconds) */
 #define FALLBACK_ALWAYS_FETCH_SETTINGS false                 /* display on after start */
 

@@ -16,7 +16,7 @@ bool init_MLX90614()
     return true;
 }
 
-void read_MLX90614(float &ambient,float &object)
+bool read_MLX90614(float &ambient,float &object)
 {
     // Call therm.read() to read object and ambient temperatures from the sensor.
     if (therm.read()) // On success, read() will return 1, on fail 0.
@@ -26,5 +26,7 @@ void read_MLX90614(float &ambient,float &object)
         // They'll be floats, calculated out to the unit you set with setUnit().
         object = therm.object();
         ambient = therm.ambient();
+        return true;
     }
+    return false;
 }
