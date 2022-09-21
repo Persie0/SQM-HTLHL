@@ -32,7 +32,7 @@
 
 using namespace std;
 
-// value doesnt get reset after deepsleep
+//RTC_DATA_ATTR values dont get reset after deepsleep
 RTC_DATA_ATTR int noWifiCount = 0;
 RTC_DATA_ATTR int sendCount = 0;
 RTC_DATA_ATTR int serverErrorCount = 0;
@@ -41,8 +41,9 @@ RTC_DATA_ATTR bool settingsLoadCount = 0;
 RTC_DATA_ATTR bool hasInitialized = false;
 RTC_DATA_ATTR bool settingsLoaded = false;
 RTC_DATA_ATTR bool hasWIFI = false;
-RTC_DATA_ATTR bool serverError = false;
+RTC_DATA_ATTR bool hasServerError = false;
 
+// settings that might get fetched from server
 RTC_DATA_ATTR int SLEEPTIME_s = FALLBACK_SLEEPTIME_s;
 RTC_DATA_ATTR int NO_WIFI_MAX_RETRIES = FALLBACK_NO_WIFI_MAX_RETRIES;
 RTC_DATA_ATTR int DISPLAY_TIMEOUT_s = FALLBACK_DISPLAY_TIMEOUT_s;
@@ -52,7 +53,7 @@ RTC_DATA_ATTR double SQM_LIMIT = FALLBACK_SQM_LIMIT;
 
 int sleepTime = 0;
 bool sleepForever = false;
-vector<String> errors;
+vector<String> sensorErrors;
 
 // sensor values
 bool raining = false;
@@ -110,7 +111,7 @@ void DisplayStatus()
         }
         if (hasWIFI)
         {
-          if (serverError)
+          if (hasServerError)
           {
             display.drawStringMaxWidth(0, 36, 128, "server error!");
           }
@@ -131,9 +132,9 @@ void DisplayStatus()
     }
     else
     {
-      if(errors.size()!=0){
-      for(int i=0; i<errors.size(); i++){
-        display.drawStringMaxWidth(0, 12*i, 128, errors[i]);
+      if(sensorErrors.size()!=0){
+      for(int i=0; i<sensorErrors.size(); i++){
+        display.drawStringMaxWidth(0, 12*i, 128, sensorErrors[i]);
       }
       }
       else{
@@ -144,7 +145,7 @@ void DisplayStatus()
   }
 }
 
-// fetch settings from API server
+// fetch settings from server
 bool fetch_settings()
 {
   WiFiClient client; // or WiFiClientSecure for HTTPS
@@ -222,11 +223,11 @@ void setup()
   // Serial.begin(115200);
 
   // enable display if set
-  if (!hasInitialized)
-  {
-    hasInitialized = true;
+  //if (!hasInitialized)
+  //{
+   // hasInitialized = true;
     // enable the 3,3V supply voltage for the display
-  }
+  //}
 
   // Enable & Set WiFi to station mode
   WiFi.mode(WIFI_STA);
@@ -250,17 +251,19 @@ void setup()
   digitalWrite(EN_5V, HIGH);
   delay(50);
 
+//if sensor error add to array
   if(!init_MLX90614()){
-    errors.push_back("init_MLX90614");
+    sensorErrors.push_back("init_MLX90614");
   }
   init_TSL2561();
     if(!init_TSL2561()){
-    errors.push_back("init_TSL2561");
+    sensorErrors.push_back("init_TSL2561");
   }
   init_AS3935();
     if(!init_AS3935()){
-    errors.push_back("init_AS3935");
+    sensorErrors.push_back("init_AS3935");
   }
+  //init SQM sensor
   FreqCountESP.begin(SQMpin, 40);
   delay(40);
   pinMode(rainS_DO, INPUT);
@@ -269,18 +272,18 @@ void setup()
 
 void loop()
 {
-
+//if sensor error add to array
     if(!read_MLX90614(ambient, object)){
-    errors.push_back("read_MLX90614");
+    sensorErrors.push_back("read_MLX90614");
   }
     if(!read_TSL2561(lux)){
-    errors.push_back("read_TSL2561");
+    sensorErrors.push_back("read_TSL2561");
   }
       if(!read_AS3935(lightning_distanceToStorm)){
-    errors.push_back("read_AS3935");
+    sensorErrors.push_back("read_AS3935");
   }
       if(!read_TSL237(luminosity, irradiance, nelm, SQM_LIMIT)){
-    errors.push_back("read_TSL237");
+    sensorErrors.push_back("read_TSL237");
   }
   // read the sensor values
   read_particle(concentration);
@@ -297,12 +300,13 @@ void loop()
   // send data if connected
   if (WiFi.status() == WL_CONNECTED)
   {
+    // fetch settings if desired
     if (!settingsLoaded || ALWAYS_FETCH_SETTINGS)
     {
       settingsLoaded = fetch_settings();
     }
-    serverError = !post_data();
-    if (serverError)
+    hasServerError = !post_data();
+    if (hasServerError)
     {
       serverErrorCount++;
     }
@@ -337,7 +341,7 @@ void loop()
   }
 
   // if couldnt send data - turn display on again and show error message
-  if ((!hasWIFI || serverError) && !DISPLAY_ON)
+  if ((!hasWIFI || hasServerError) && !DISPLAY_ON)
   {
     pinMode(EN_DisplayGPIO, OUTPUT);
     digitalWrite(EN_DisplayGPIO, HIGH);
