@@ -50,6 +50,17 @@ RTC_DATA_ATTR int DISPLAY_TIMEOUT_s = FALLBACK_DISPLAY_TIMEOUT_s;
 RTC_DATA_ATTR bool DISPLAY_ON = FALLBACK_DISPLAY_ON;
 RTC_DATA_ATTR bool ALWAYS_FETCH_SETTINGS = FALLBACK_ALWAYS_FETCH_SETTINGS;
 RTC_DATA_ATTR double SQM_LIMIT = FALLBACK_SQM_LIMIT;
+//Abbreviations
+RTC_DATA_ATTR String ab_obj = FALLBACK_ab_obj;   // X1: TQ ... Temperatur Sensor
+RTC_DATA_ATTR String ab_amb = FALLBACK_ab_amb;   // X1: TQ ... Temperatur Sensor
+RTC_DATA_ATTR String ab_dust = FALLBACK_ab_dust ;  // X2: SA ... Staub Detektor
+RTC_DATA_ATTR String ab_lux = FALLBACK_ab_lux   ;// X3: HL ... Lux
+RTC_DATA_ATTR String ab_rain = FALLBACK_ab_rain   ;// X4: RQ ... Regen Sensor
+RTC_DATA_ATTR String ab_lightn = FALLBACK_ab_lightn  ;// X5: BD ... Blitz Detektor
+RTC_DATA_ATTR String ab_sqm = FALLBACK_ab_sqm   ;// X6: SQ ... SQM TSL237
+RTC_DATA_ATTR String ab_nelm = FALLBACK_ab_nelm   ;// X6: SQ ... Nelm TSL237
+RTC_DATA_ATTR String ab_irra = FALLBACK_ab_irra  ;// X6: SQ ... Irradiance TSL237
+
 
 int sleepTime = 0;
 bool sleepForever = false;
@@ -199,7 +210,7 @@ bool post_data()
 
   std::stringstream data;
   // create a json string
-  data << "{\"raining\":\"" << raining << "\",\"luminosity\":\"" << luminosity << "\",\"irradiance\":\"" << irradiance << "\",\"nelm\":\"" << nelm << "\",\"concentration\":\"" << concentration << "\",\"object\":\"" << object << "\",\"ambient\":\"" << ambient << "\",\"lux\":\"" << lux << "\",\"lightning_distanceToStorm\":\"" << lightning_distanceToStorm << "\"}";
+  data << "{\"" << ab_rain << "raining\":\"" << raining << "\",\"" << ab_sqm << "luminosity\":\"" << luminosity << "\",\"" << ab_irra << "irradiance\":\"" << irradiance << "\",\"" << ab_nelm << "nelm\":\"" << nelm << "\",\"" << ab_dust << "concentration\":\"" << concentration << "\",\"" << ab_obj << "object\":\"" << object << "\",\"" << ab_amb << "ambient\":\"" << ambient << "\",\"" << ab_lux << "lux\":\"" << lux << "\",\"" << ab_lightn << "lightning_distanceToStorm\":\"" << lightning_distanceToStorm << "\"}";
   std::string s = data.str();
   // Your Domain name with URL path or IP address with path
   http.begin(client, sendserverName);

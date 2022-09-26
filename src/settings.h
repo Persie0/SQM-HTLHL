@@ -52,6 +52,20 @@
 #define FALLBACK_SQM_LIMIT 21.83                 // mag limit for earth is 21.95
 
     // ===========================================================
+    //                 Sensor Data SETTINGS / Abbreviations
+    // ===========================================================
+
+#define FALLBACK_ab_obj "TO"   // X1: TQ ... Object Temperatur Sensor
+#define FALLBACK_ab_amb "TA"   // X1: TQ ... Ambient Temperatur Sensor
+#define FALLBACK_ab_dust "SA"   // X2: SA ... Staub Detektor
+#define FALLBACK_ab_lux "HL"   // X3: HL ... Lux
+#define FALLBACK_ab_rain "RQ"   // X4: RQ ... Regen Sensor
+#define FALLBACK_ab_lightn "BD"   // X5: BD ... Blitz Detektor
+#define FALLBACK_ab_sqm "SQ"   // X6: SQ ... SQM TSL237
+#define FALLBACK_ab_nelm "NE"   // X6: SQ ... Nelm TSL237
+#define FALLBACK_ab_irra "IR"   // X6: SQ ... Irradiance TSL237
+
+    // ===========================================================
     //                 LIGHTNING SENSOR SETTINGS
     // ===========================================================
 
