@@ -9,14 +9,16 @@
     // ===========================================================
 
 // WiFi credentials.
-#define WIFI_SSID  "HOTEL"
-#define WIFI_PASS  "Sporthotel"
-#define serverIP  "192.168.33.250"
+#define WIFI_SSID  "Waauuuuw"
+#define WIFI_PASS  "00000000"
+
+#define serverIP  "192.168.43.67"
+#define serverPort  "5000"
 
 //Post sensor values - Domain name with URL path or IP address with path
-#define sendserverName "http://"+String(serverIP)+":5000/SQM"
+#define sendserverName "http://"+String(serverIP)+":"+String(serverPort)+"/SQM"
 //Get settings - Domain name with URL path or IP address with path
-#define fetchserverName "http://"+String(serverIP)+":5000/getsettings"
+#define fetchserverName "http://"+String(serverIP)+":"+String(serverPort)+"/getsettings"
 
 
     // ===========================================================
@@ -40,13 +42,13 @@
     // ===========================================================
 
   //Display
-#define ESP_MODE 0                 //0-Offline (just display sensor values), 1-Online (normal), 2-Test (testing sensors, showing errors on display)
+#define ESP_MODE 1                 //0-Offline (just display sensor values), 1-Online (normal), 2-Test (testing sensors, showing errors on display)
 #define FALLBACK_DISPLAY_TIMEOUT_s 200                 /* Time Display will be on after start */
 #define FALLBACK_DISPLAY_ON true                 /* display on after start */
 
-#define FALLBACK_SLEEPTIME_s 180                 /* Time ESP32 will go to sleep (in seconds) */
+#define FALLBACK_SLEEPTIME_s 10                 /* Time ESP32 will go to sleep (in seconds) */
 #define FALLBACK_NO_WIFI_MAX_RETRIES 5                 /* Time ESP32 will go to sleep (in seconds) */
-#define NOWIFI_SLEEPTIME_s 25                 /* Time ESP32 will go to sleep (in seconds) */
+#define NOWIFI_SLEEPTIME_s 5                 /* Time ESP32 will go to sleep (in seconds) */
 #define FALLBACK_ALWAYS_FETCH_SETTINGS false                 /* display on after start */
 
 #define FALLBACK_SQM_LIMIT 21.83                 // mag limit for earth is 21.95

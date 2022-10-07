@@ -32,7 +32,7 @@
 
 using namespace std;
 
-//RTC_DATA_ATTR values dont get reset after deepsleep
+// RTC_DATA_ATTR values dont get reset after deepsleep
 RTC_DATA_ATTR int noWifiCount = 0;
 RTC_DATA_ATTR int sendCount = 0;
 RTC_DATA_ATTR int serverErrorCount = 0;
@@ -50,17 +50,16 @@ RTC_DATA_ATTR int DISPLAY_TIMEOUT_s = FALLBACK_DISPLAY_TIMEOUT_s;
 RTC_DATA_ATTR bool DISPLAY_ON = FALLBACK_DISPLAY_ON;
 RTC_DATA_ATTR bool ALWAYS_FETCH_SETTINGS = FALLBACK_ALWAYS_FETCH_SETTINGS;
 RTC_DATA_ATTR double SQM_LIMIT = FALLBACK_SQM_LIMIT;
-//Abbreviations
-RTC_DATA_ATTR String ab_obj = FALLBACK_ab_obj;   // X1: TQ ... Temperatur Sensor
-RTC_DATA_ATTR String ab_amb = FALLBACK_ab_amb;   // X1: TQ ... Temperatur Sensor
-RTC_DATA_ATTR String ab_dust = FALLBACK_ab_dust ;  // X2: SA ... Staub Detektor
-RTC_DATA_ATTR String ab_lux = FALLBACK_ab_lux   ;// X3: HL ... Lux
-RTC_DATA_ATTR String ab_rain = FALLBACK_ab_rain   ;// X4: RQ ... Regen Sensor
-RTC_DATA_ATTR String ab_lightn = FALLBACK_ab_lightn  ;// X5: BD ... Blitz Detektor
-RTC_DATA_ATTR String ab_sqm = FALLBACK_ab_sqm   ;// X6: SQ ... SQM TSL237
-RTC_DATA_ATTR String ab_nelm = FALLBACK_ab_nelm   ;// X6: SQ ... Nelm TSL237
-RTC_DATA_ATTR String ab_irra = FALLBACK_ab_irra  ;// X6: SQ ... Irradiance TSL237
-
+// Abbreviations
+RTC_DATA_ATTR String ab_obj = FALLBACK_ab_obj;       // X1: TQ ... Temperatur Sensor
+RTC_DATA_ATTR String ab_amb = FALLBACK_ab_amb;       // X1: TQ ... Temperatur Sensor
+RTC_DATA_ATTR String ab_dust = FALLBACK_ab_dust;     // X2: SA ... Staub Detektor
+RTC_DATA_ATTR String ab_lux = FALLBACK_ab_lux;       // X3: HL ... Lux
+RTC_DATA_ATTR String ab_rain = FALLBACK_ab_rain;     // X4: RQ ... Regen Sensor
+RTC_DATA_ATTR String ab_lightn = FALLBACK_ab_lightn; // X5: BD ... Blitz Detektor
+RTC_DATA_ATTR String ab_sqm = FALLBACK_ab_sqm;       // X6: SQ ... SQM TSL237
+RTC_DATA_ATTR String ab_nelm = FALLBACK_ab_nelm;     // X6: SQ ... Nelm TSL237
+RTC_DATA_ATTR String ab_irra = FALLBACK_ab_irra;     // X6: SQ ... Irradiance TSL237
 
 int sleepTime = 0;
 bool sleepForever = false;
@@ -143,12 +142,15 @@ void DisplayStatus()
     }
     else
     {
-      if(sensorErrors.size()!=0){
-      for(int i=0; i<sensorErrors.size(); i++){
-        display.drawStringMaxWidth(0, 12*i, 128, sensorErrors[i]);
+      if (sensorErrors.size() != 0)
+      {
+        for (int i = 0; i < sensorErrors.size(); i++)
+        {
+          display.drawStringMaxWidth(0, 12 * i, 128, sensorErrors[i]);
+        }
       }
-      }
-      else{
+      else
+      {
         display.drawStringMaxWidth(0, 0, 128, "No errors :)");
       }
     }
@@ -210,7 +212,7 @@ bool post_data()
 
   std::stringstream data;
   // create a json string
-  data << "{\"" << ab_rain << "raining\":\"" << raining << "\",\"" << ab_sqm << "luminosity\":\"" << luminosity << "\",\"" << ab_irra << "irradiance\":\"" << irradiance << "\",\"" << ab_nelm << "nelm\":\"" << nelm << "\",\"" << ab_dust << "concentration\":\"" << concentration << "\",\"" << ab_obj << "object\":\"" << object << "\",\"" << ab_amb << "ambient\":\"" << ambient << "\",\"" << ab_lux << "lux\":\"" << lux << "\",\"" << ab_lightn << "lightning_distanceToStorm\":\"" << lightning_distanceToStorm << "\"}";
+  data << "{\"raining\":\"" << raining << "\",\"luminosity\":\"" << luminosity << "\",\"irradiance\":\"" << irradiance << "\",\"nelm\":\"" << nelm << "\",\"concentration\":\"" << concentration << "\",\"object\":\"" << object << "\",\"ambient\":\"" << ambient << "\",\"lux\":\"" << lux << "\",\"lightning_distanceToStorm\":\"" << lightning_distanceToStorm << "\"}";
   std::string s = data.str();
   // Your Domain name with URL path or IP address with path
   http.begin(client, sendserverName);
@@ -234,17 +236,18 @@ void setup()
   // Serial.begin(115200);
 
   // enable display if set
-  //if (!hasInitialized)
+  // if (!hasInitialized)
   //{
-   // hasInitialized = true;
-    // enable the 3,3V supply voltage for the display
+  // hasInitialized = true;
+  // enable the 3,3V supply voltage for the display
   //}
 
   // Enable & Set WiFi to station mode
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   WiFi.setTxPower(WIFI_POWER_19_5dBm);
-
+  // init SQM sensor
+  FreqCountESP.begin(SQMpin, 55);
   Wire.begin(); // I2C bus begin, so can talk to display
 
   if (DISPLAY_ON)
@@ -256,44 +259,49 @@ void setup()
     gpio_deep_sleep_hold_en();
   }
   // enable the 5V/3,3V supply voltage for the sensors
- pinMode(EN_3V3, OUTPUT);
+  pinMode(EN_3V3, OUTPUT);
   pinMode(EN_5V, OUTPUT);
   digitalWrite(EN_3V3, HIGH);
   digitalWrite(EN_5V, HIGH);
   delay(50);
 
-//if sensor error add to array
-  if(!init_MLX90614()){
+  // if sensor error add to array
+  if (!init_MLX90614())
+  {
     sensorErrors.push_back("init_MLX90614");
   }
   init_TSL2561();
-    if(!init_TSL2561()){
+  if (!init_TSL2561())
+  {
     sensorErrors.push_back("init_TSL2561");
   }
   init_AS3935();
-    if(!init_AS3935()){
+  if (!init_AS3935())
+  {
     sensorErrors.push_back("init_AS3935");
   }
-  //init SQM sensor
-  FreqCountESP.begin(SQMpin, 40);
-  delay(40);
+
   pinMode(rainS_DO, INPUT);
   pinMode(particle_pin, INPUT);
 }
 
 void loop()
 {
-//if sensor error add to array
-    if(!read_MLX90614(ambient, object)){
+  // if sensor error add to array
+  if (!read_MLX90614(ambient, object))
+  {
     sensorErrors.push_back("read_MLX90614");
   }
-    if(!read_TSL2561(lux)){
+  if (!read_TSL2561(lux))
+  {
     sensorErrors.push_back("read_TSL2561");
   }
-      if(!read_AS3935(lightning_distanceToStorm)){
+  if (!read_AS3935(lightning_distanceToStorm))
+  {
     sensorErrors.push_back("read_AS3935");
   }
-      if(!read_TSL237(luminosity, irradiance, nelm, SQM_LIMIT)){
+  if (!read_TSL237(luminosity, irradiance, nelm, SQM_LIMIT))
+  {
     sensorErrors.push_back("read_TSL237");
   }
   // read the sensor values
