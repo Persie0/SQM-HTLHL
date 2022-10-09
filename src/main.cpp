@@ -50,16 +50,14 @@ RTC_DATA_ATTR int DISPLAY_TIMEOUT_s = FALLBACK_DISPLAY_TIMEOUT_s;
 RTC_DATA_ATTR bool DISPLAY_ON = FALLBACK_DISPLAY_ON;
 RTC_DATA_ATTR bool ALWAYS_FETCH_SETTINGS = FALLBACK_ALWAYS_FETCH_SETTINGS;
 RTC_DATA_ATTR double SQM_LIMIT = FALLBACK_SQM_LIMIT;
-// Abbreviations
-RTC_DATA_ATTR String ab_obj = FALLBACK_ab_obj;       // X1: TQ ... Temperatur Sensor
-RTC_DATA_ATTR String ab_amb = FALLBACK_ab_amb;       // X1: TQ ... Temperatur Sensor
-RTC_DATA_ATTR String ab_dust = FALLBACK_ab_dust;     // X2: SA ... Staub Detektor
-RTC_DATA_ATTR String ab_lux = FALLBACK_ab_lux;       // X3: HL ... Lux
-RTC_DATA_ATTR String ab_rain = FALLBACK_ab_rain;     // X4: RQ ... Regen Sensor
-RTC_DATA_ATTR String ab_lightn = FALLBACK_ab_lightn; // X5: BD ... Blitz Detektor
-RTC_DATA_ATTR String ab_sqm = FALLBACK_ab_sqm;       // X6: SQ ... SQM TSL237
-RTC_DATA_ATTR String ab_nelm = FALLBACK_ab_nelm;     // X6: SQ ... Nelm TSL237
-RTC_DATA_ATTR String ab_irra = FALLBACK_ab_irra;     // X6: SQ ... Irradiance TSL237
+RTC_DATA_ATTR bool SEEING_ENABLED = false;
+// Sky state indicators
+RTC_DATA_ATTR int CLOUD_STATE = -1;
+
+#define SKYCLEAR 1
+#define SKYPCLOUDY 2
+#define SKYCLOUDY 3
+#define SKYUNKNOWN 0
 
 int sleepTime = 0;
 bool sleepForever = false;
@@ -158,6 +156,16 @@ void DisplayStatus()
   }
 }
 
+// set a Pin as output and keep it high also in deepsleep
+void high_hold_Pin(gpio_num_t pin)
+{
+  // keep display on in deepsleep
+  pinMode(pin, OUTPUT);
+  digitalWrite(pin, HIGH);
+  gpio_hold_en(pin);
+  gpio_deep_sleep_hold_en();
+}
+
 // fetch settings from server
 bool fetch_settings()
 {
@@ -231,6 +239,52 @@ bool post_data()
   }
 }
 
+void getcloudstate()
+{
+  static int setpoint1 = 22; // setpoint values used to determine sky state
+  static int setpoint2 = 2;
+  float TempDiff = ambient - object;
+  // object temp is IR temp of sky which at night time will be a lot less than ambient temp
+  // so TempDiff is basically ambient + abs(object)
+  // setpoint 1 is set for clear skies
+  // setpoint 2 is set for cloudy skies
+  // setpoint2 should be lower than setpoint1
+  // For clear, Object will be very low, so TempDiff is largest
+  // For cloudy, Object is closer to ambient, so TempDiff will be lowest
+
+  // Readings are only valid at night when dark and sensor is pointed to sky
+  // During the day readings are meaningless
+  if (TempDiff > setpoint1)
+  {
+    CLOUD_STATE = SKYCLEAR; // clear
+  }
+  else if ((TempDiff > setpoint2) && (TempDiff < setpoint1))
+  {
+    CLOUD_STATE = SKYPCLOUDY; // partly cloudy
+  }
+  else if (TempDiff < setpoint2)
+  {
+    CLOUD_STATE = SKYCLOUDY; // cloudy
+  }
+  else
+  {
+    CLOUD_STATE = SKYUNKNOWN; // unknown
+  }
+}
+
+bool check_seeing()
+{
+  getcloudstate();
+  if (CLOUD_STATE == SKYCLEAR && !raining && lux < 50 && luminosity > 18 && concentration < 10000)
+  {
+      // keep Seeing on in deepsleep
+      high_hold_Pin(EN_SEEING);
+  }
+  else{
+    digitalWrite(EN_SEEING, LOW);
+  }
+}
+
 void setup()
 {
   // Serial.begin(115200);
@@ -253,19 +307,17 @@ void setup()
   if (DISPLAY_ON)
   {
     // keep display on in deepsleep
-    pinMode(EN_DisplayGPIO, OUTPUT);
-    digitalWrite(EN_DisplayGPIO, HIGH);
-    gpio_hold_en(EN_DisplayGPIO);
-    gpio_deep_sleep_hold_en();
+    high_hold_Pin(EN_Display);
   }
   // enable the 5V/3,3V supply voltage for the sensors
   pinMode(EN_3V3, OUTPUT);
   pinMode(EN_5V, OUTPUT);
   digitalWrite(EN_3V3, HIGH);
   digitalWrite(EN_5V, HIGH);
+
   delay(50);
 
-  // if sensor error add to array
+  // initialise sensors, if sensor error add to array
   if (!init_MLX90614())
   {
     sensorErrors.push_back("init_MLX90614");
@@ -287,7 +339,7 @@ void setup()
 
 void loop()
 {
-  // if sensor error add to array
+  // read sensors, if sensor error add to array
   if (!read_MLX90614(ambient, object))
   {
     sensorErrors.push_back("read_MLX90614");
@@ -313,13 +365,13 @@ void loop()
   {
     // disable sensor supply voltage
     DISPLAY_ON = false;
-    digitalWrite(EN_DisplayGPIO, LOW);
+    digitalWrite(EN_Display, LOW);
   }
 
   // send data if connected
   if (WiFi.status() == WL_CONNECTED)
   {
-    // fetch settings if desired
+    // fetch settings if not loaded yet and desired
     if (!settingsLoaded || ALWAYS_FETCH_SETTINGS)
     {
       settingsLoaded = fetch_settings();
@@ -340,7 +392,6 @@ void loop()
   {
     sleepTime = NOWIFI_SLEEPTIME_s;
     noWifiCount++;
-    // enable display if it was turned off
     hasWIFI = false;
     // sleep forever if max retries reached
     if (noWifiCount >= NO_WIFI_MAX_RETRIES)
@@ -362,16 +413,15 @@ void loop()
   // if couldnt send data - turn display on again and show error message
   if ((!hasWIFI || hasServerError) && !DISPLAY_ON)
   {
-    pinMode(EN_DisplayGPIO, OUTPUT);
-    digitalWrite(EN_DisplayGPIO, HIGH);
-    // hold GPIO voltage in deepsleep
-    gpio_hold_en(EN_DisplayGPIO);
+    // keep display on in deepsleep
+    high_hold_Pin(EN_Display);
   }
+
+  check_seeing();
 
   DisplayStatus();
 
   WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
-  // esp_wifi_stop();
 
   esp_deep_sleep(sleepTime * 1000000);
 }
