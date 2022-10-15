@@ -19,6 +19,10 @@
 #include "soc/rtc.h"
 #include "driver/rtc_io.h"
 #include <ArduinoJson.h>
+#include <Preferences.h>
+#include <ESPAsyncWebServer.h>
+#include <AsyncTCP.h>
+#include "SPIFFS.h"
 
 #include "FreqCountESP.h"
 #include "SSD1306Wire.h"
@@ -31,6 +35,13 @@
 #include "sensors/sensor_SQM.h"
 
 using namespace std;
+
+// Permanently stored values
+RTC_DATA_ATTR String WIFI_SSID = FALLBACK_WIFI_SSID;
+RTC_DATA_ATTR String WIFI_PASS = FALLBACK_WIFI_PASS;
+RTC_DATA_ATTR String SERVER_IP = FALLBACK_WIFI_PASS;
+RTC_DATA_ATTR String SEND_SERVER = fallback_sendserverName;
+RTC_DATA_ATTR String FETCH_SERVER = fallback_fetchserverName;
 
 // RTC_DATA_ATTR values dont get reset after deepsleep
 RTC_DATA_ATTR int noWifiCount = 0;
@@ -73,8 +84,123 @@ double irradiance = -1;
 double nelm = -1;
 int concentration = -1;
 
+// Search for parameter in HTTP POST request
+const char *PARAM_INPUT_1 = "ssid";
+const char *PARAM_INPUT_2 = "pass";
+const char *PARAM_INPUT_3 = "ip";
+
+// Create AsyncWebServer object on port 80
+AsyncWebServer server(80);
+
 // for 128x64 displays:
 SSD1306Wire display(0x3c, SDA, SCL); // ADDRESS, SDA, SCL
+
+Preferences preferences;
+
+// Initialize SPIFFS
+bool initSPIFFS()
+{
+  if (!SPIFFS.begin(true))
+  {
+    return false;
+  }
+  return true;
+}
+
+// Read File from SPIFFS
+String readFile(fs::FS &fs, const char *path)
+{
+  File file = fs.open(path);
+  if (!file || file.isDirectory())
+  {
+    return String();
+  }
+  String fileContent;
+  while (file.available())
+  {
+    fileContent = file.readStringUntil('\n');
+    break;
+  }
+  return fileContent;
+}
+
+// Write file to SPIFFS
+bool writeFile(fs::FS &fs, const char *path, const char *message)
+{
+  File file = fs.open(path, FILE_WRITE);
+  if (!file)
+  {
+    return false;
+  }
+  if (file.print(message))
+  {
+    return true;
+  }
+  else
+  {
+    return false;
+  }
+}
+
+// Replaces placeholder with Wifi info
+String wifi_info(const String &var)
+{
+  return "SSID: " + WIFI_SSID + ", \nPW: " + WIFI_PASS + ", \nServer IP: " + SERVER_IP;
+}
+
+void activate_acces_point()
+{
+  initSPIFFS();
+  WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
+  delay(10);
+  WiFi.softAPConfig(localIP, gateway, subnet);
+  // NULL sets an open Access Point
+  WiFi.softAP("ESP-WIFI-MANAGER", NULL);
+
+  // Web Server Root URL
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
+            { request->send(SPIFFS, "/wifimanager.html", "text/html"); });
+
+  server.serveStatic("/", SPIFFS, "/");
+
+  server.on("/", HTTP_POST, [](AsyncWebServerRequest *request)
+            {
+      int params = request->params();
+      for(int i=0;i<params;i++){
+        AsyncWebParameter* p = request->getParam(i);
+        if(p->isPost()){
+          // HTTP POST ssid value
+          if (p->name() == PARAM_INPUT_1) {
+            WIFI_SSID = p->value().c_str();
+            // Write file to save value
+            writeFile(SPIFFS, ssidPath, WIFI_SSID.c_str());
+          }
+          // HTTP POST pass value
+          if (p->name() == PARAM_INPUT_2) {
+            WIFI_PASS = p->value().c_str();
+            // Write file to save value
+            writeFile(SPIFFS, passPath, WIFI_PASS.c_str());
+          }
+          // HTTP POST ip value
+          if (p->name() == PARAM_INPUT_3) {
+            SERVER_IP = p->value().c_str();
+            // Write file to save value
+            writeFile(SPIFFS, ipPath, SERVER_IP.c_str());
+          }
+        }
+      }
+      request->send(200, "text/plain", "Done. ESP will restart, connect to your router "+ String(WIFI_SSID.c_str())+" and go to IP address: " + SERVER_IP);
+      delay(3000);
+      ESP.restart(); });
+  server.begin();
+  unsigned long startTime = millis();
+  while ((millis() - startTime) < 1200)// run for 20min
+  { 
+  delay(100);
+  }
+  // if no changes - sleep forever
+  esp_deep_sleep(9999999 * 1000000);
+}
 
 void DisplayStatus()
 {
@@ -174,7 +300,7 @@ bool fetch_settings()
 
   // Send request
   http.useHTTP10(true);
-  http.begin(client, fetchserverName);
+  http.begin(client, FETCH_SERVER);
   int httpResponseCode = http.GET();
   if (httpResponseCode == 200)
   {
@@ -223,7 +349,7 @@ bool post_data()
   data << "{\"raining\":\"" << raining << "\",\"luminosity\":\"" << luminosity << "\",\"irradiance\":\"" << irradiance << "\",\"nelm\":\"" << nelm << "\",\"concentration\":\"" << concentration << "\",\"object\":\"" << object << "\",\"ambient\":\"" << ambient << "\",\"lux\":\"" << lux << "\",\"lightning_distanceToStorm\":\"" << lightning_distanceToStorm << "\"}";
   std::string s = data.str();
   // Your Domain name with URL path or IP address with path
-  http.begin(client, sendserverName);
+  http.begin(client, SEND_SERVER);
   // If you need an HTTP request with a content type: application/json, use the following:
   http.addHeader("Content-Type", "application/json");
   int httpResponseCode = http.POST(s.c_str());
@@ -277,10 +403,11 @@ bool check_seeing()
   getcloudstate();
   if (CLOUD_STATE == SKYCLEAR && !raining && lux < 50 && luminosity > 18 && concentration < 10000)
   {
-      // keep Seeing on in deepsleep
-      high_hold_Pin(EN_SEEING);
+    // keep Seeing on in deepsleep
+    high_hold_Pin(EN_SEEING);
   }
-  else{
+  else
+  {
     digitalWrite(EN_SEEING, LOW);
   }
 }
@@ -290,15 +417,25 @@ void setup()
   // Serial.begin(115200);
 
   // enable display if set
-  // if (!hasInitialized)
-  //{
-  // hasInitialized = true;
-  // enable the 3,3V supply voltage for the display
-  //}
+  if (!hasInitialized)
+  {
+    initSPIFFS();
+    // Load values saved in SPIFFS
+    WIFI_SSID = readFile(SPIFFS, ssidPath);
+    WIFI_PASS = readFile(SPIFFS, passPath);
+    SERVER_IP = readFile(SPIFFS, ipPath);
+    hasInitialized = true;
+
+    // Post sensor values - Domain name with URL path or IP address with path
+    SEND_SERVER = "http://" + String(SERVER_IP) + ":" + String(serverPort) + "/SQM";
+    // Get settings - Domain name with URL path or IP address with path
+    FETCH_SERVER = "http://" + String(SERVER_IP) + ":" + String(serverPort) + "/getsettings";
+    SPIFFS.end();
+  }
 
   // Enable & Set WiFi to station mode
   WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  WiFi.begin(WIFI_SSID.c_str(), WIFI_PASS.c_str());
   WiFi.setTxPower(WIFI_POWER_19_5dBm);
   // init SQM sensor
   FreqCountESP.begin(SQMpin, 55);
@@ -396,9 +533,10 @@ void loop()
     // sleep forever if max retries reached
     if (noWifiCount >= NO_WIFI_MAX_RETRIES)
     {
-      // sleep forever
-      sleepTime = 9999999;
+      // open AP for changing WIFI settings
       sleepForever = true;
+      DisplayStatus();
+      activate_acces_point();
     }
   }
 

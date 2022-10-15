@@ -1,0 +1,21 @@
+void load_wifi_credentials()
+{
+  // Open Preferences
+  // RW-mode (second parameter has to be false).
+  preferences.begin("wifi", true);
+  WIFI_SSID = preferences.getString("ssid", FALLBACK_WIFI_SSID);
+  WIFI_PASS = preferences.getString("pass", FALLBACK_WIFI_PASS);
+  // Close the Preferences
+  preferences.end();
+}
+
+void store_wifi_credentials()
+{
+  // Open Preferences
+  // RW-mode (second parameter has to be false).
+  preferences.begin("wifi", false);
+  preferences.putString("ssid", WIFI_SSID);
+  preferences.putString("pass", WIFI_PASS);
+  // Close the Preferences
+  preferences.end();
+}
