@@ -110,7 +110,7 @@ void activate_access_point()
   delay(100);
   }
   // if no changes - sleep forever
-  esp_deep_sleep(999999 * 1000000);
+  esp_deep_sleep(0);
 }
 
 void DisplayStatus()
@@ -457,7 +457,7 @@ void loop()
   if (serverErrorCount > sendCount && serverErrorCount > NO_WIFI_MAX_RETRIES)
   {
     // sleep forever
-    sleepTime = 9999999;
+    sleepTime = 0;
     sleepForever = true;
   }
 

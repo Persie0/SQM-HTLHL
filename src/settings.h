@@ -19,9 +19,9 @@
 #define fallback_fetchserverName "http://" + String(FALLBACK_SERVER_IP) + ":" + String(serverPort) + "/getsettings"
 
 // File paths to save input values permanently
-const char *ssidPath = "/ssid.txt";
-const char *passPath = "/pass.txt";
-const char *ipPath = "/ip.txt";
+#define ssidPath  "/ssid.txt"
+#define passPath  "/pass.txt"
+#define ipPath  "/ip.txt"
 
 // ===========================================================
 //                 PINS
