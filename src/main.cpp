@@ -22,7 +22,8 @@
 #include <Preferences.h>
 #include <ESPAsyncWebServer.h>
 #include <AsyncTCP.h>
-#include "SPIFFS.h"
+#include <SPIFFS.h>
+
 
 #include "FreqCountESP.h"
 #include "SSD1306Wire.h"
@@ -33,114 +34,24 @@
 #include "sensors/sensor_dust.h"
 #include "sensors/sensor_rain.h"
 #include "sensors/sensor_SQM.h"
+#include "hardware/spiffs_fkt.h"
+#include "variables.h"
 
 using namespace std;
-
-// Permanently stored values
-RTC_DATA_ATTR String WIFI_SSID = FALLBACK_WIFI_SSID;
-RTC_DATA_ATTR String WIFI_PASS = FALLBACK_WIFI_PASS;
-RTC_DATA_ATTR String SERVER_IP = FALLBACK_WIFI_PASS;
-RTC_DATA_ATTR String SEND_SERVER = fallback_sendserverName;
-RTC_DATA_ATTR String FETCH_SERVER = fallback_fetchserverName;
-
-// RTC_DATA_ATTR values dont get reset after deepsleep
-RTC_DATA_ATTR int noWifiCount = 0;
-RTC_DATA_ATTR int sendCount = 0;
-RTC_DATA_ATTR int serverErrorCount = 0;
-RTC_DATA_ATTR bool settingsLoadCount = 0;
-
-RTC_DATA_ATTR bool hasInitialized = false;
-RTC_DATA_ATTR bool settingsLoaded = false;
-RTC_DATA_ATTR bool hasWIFI = false;
-RTC_DATA_ATTR bool hasServerError = false;
-
-// settings that might get fetched from server
-RTC_DATA_ATTR int SLEEPTIME_s = FALLBACK_SLEEPTIME_s;
-RTC_DATA_ATTR int NO_WIFI_MAX_RETRIES = FALLBACK_NO_WIFI_MAX_RETRIES;
-RTC_DATA_ATTR int DISPLAY_TIMEOUT_s = FALLBACK_DISPLAY_TIMEOUT_s;
-RTC_DATA_ATTR bool DISPLAY_ON = FALLBACK_DISPLAY_ON;
-RTC_DATA_ATTR bool ALWAYS_FETCH_SETTINGS = FALLBACK_ALWAYS_FETCH_SETTINGS;
-RTC_DATA_ATTR double SQM_LIMIT = FALLBACK_SQM_LIMIT;
-RTC_DATA_ATTR bool SEEING_ENABLED = false;
-// Sky state indicators
-RTC_DATA_ATTR int CLOUD_STATE = -1;
-
-#define SKYCLEAR 1
-#define SKYPCLOUDY 2
-#define SKYCLOUDY 3
-#define SKYUNKNOWN 0
 
 int sleepTime = 0;
 bool sleepForever = false;
 vector<String> sensorErrors;
 
-// sensor values
-bool raining = false;
-float ambient, object = -1;
-double lux = -1; // Resulting lux value
-int lightning_distanceToStorm = -1;
-float luminosity = -1; // the SQM value, sky magnitude
-double irradiance = -1;
-double nelm = -1;
-int concentration = -1;
-
-// Search for parameter in HTTP POST request
-const char *PARAM_INPUT_1 = "ssid";
-const char *PARAM_INPUT_2 = "pass";
-const char *PARAM_INPUT_3 = "ip";
+// if it has no internet - Access Point, WIFI settings
+IPAddress localIP(192, 168, 1, 1);
+IPAddress gateway(192, 168, 1, 0);
+IPAddress subnet(255, 255, 255, 0);
 
 // Create AsyncWebServer object on port 80
 AsyncWebServer server(80);
-
 // for 128x64 displays:
 SSD1306Wire display(0x3c, SDA, SCL); // ADDRESS, SDA, SCL
-
-Preferences preferences;
-
-// Initialize SPIFFS
-bool initSPIFFS()
-{
-  if (!SPIFFS.begin(true))
-  {
-    return false;
-  }
-  return true;
-}
-
-// Read File from SPIFFS
-String readFile(fs::FS &fs, const char *path)
-{
-  File file = fs.open(path);
-  if (!file || file.isDirectory())
-  {
-    return String();
-  }
-  String fileContent;
-  while (file.available())
-  {
-    fileContent = file.readStringUntil('\n');
-    break;
-  }
-  return fileContent;
-}
-
-// Write file to SPIFFS
-bool writeFile(fs::FS &fs, const char *path, const char *message)
-{
-  File file = fs.open(path, FILE_WRITE);
-  if (!file)
-  {
-    return false;
-  }
-  if (file.print(message))
-  {
-    return true;
-  }
-  else
-  {
-    return false;
-  }
-}
 
 // Replaces placeholder with Wifi info
 String wifi_info(const String &var)
@@ -148,7 +59,7 @@ String wifi_info(const String &var)
   return "SSID: " + WIFI_SSID + ", \nPW: " + WIFI_PASS + ", \nServer IP: " + SERVER_IP;
 }
 
-void activate_acces_point()
+void activate_access_point()
 {
   initSPIFFS();
   WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
@@ -199,7 +110,7 @@ void activate_acces_point()
   delay(100);
   }
   // if no changes - sleep forever
-  esp_deep_sleep(9999999 * 1000000);
+  esp_deep_sleep(999999 * 1000000);
 }
 
 void DisplayStatus()
@@ -405,10 +316,12 @@ bool check_seeing()
   {
     // keep Seeing on in deepsleep
     high_hold_Pin(EN_SEEING);
+    return true;
   }
   else
   {
     digitalWrite(EN_SEEING, LOW);
+    return false;
   }
 }
 
@@ -536,7 +449,7 @@ void loop()
       // open AP for changing WIFI settings
       sleepForever = true;
       DisplayStatus();
-      activate_acces_point();
+      activate_access_point();
     }
   }
 

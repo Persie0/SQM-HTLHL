@@ -23,11 +23,6 @@ const char *ssidPath = "/ssid.txt";
 const char *passPath = "/pass.txt";
 const char *ipPath = "/ip.txt";
 
-// if it has no internet - Access Point, WIFI settings
-IPAddress localIP(192, 168, 1, 1);
-IPAddress gateway(192, 168, 1, 0);
-IPAddress subnet(255, 255, 255, 0);
-
 // ===========================================================
 //                 PINS
 // ===========================================================
