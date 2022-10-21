@@ -63,6 +63,7 @@ void activate_access_point()
 {
   initSPIFFS();
   WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
+  WiFi.mode(WIFI_AP); // Switch WiFi off
   delay(10);
   WiFi.softAPConfig(localIP, gateway, subnet);
   // NULL sets an open Access Point
@@ -101,11 +102,11 @@ void activate_access_point()
         }
       }
       request->send(200, "text/plain", "Done. ESP will restart, connect to your router "+ String(WIFI_SSID.c_str())+" and go to IP address: " + SERVER_IP);
-      delay(3000);
+      delay(6000);
       ESP.restart(); });
   server.begin();
   unsigned long startTime = millis();
-  while ((millis() - startTime) < 1200)// run for 20min
+  while ((millis() - startTime) < 1200*1000)// run for 20min
   { 
   delay(100);
   }

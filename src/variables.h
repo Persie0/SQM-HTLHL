@@ -37,12 +37,12 @@ RTC_DATA_ATTR int CLOUD_STATE = -1;
 
 // sensor values
 bool raining = false;
-float ambient, object = -1;
+float ambient, object = -1; //TQ, HT
 double lux = -1; // Resulting lux value
 int lightning_distanceToStorm = -1;
 float luminosity = -1; // the SQM value, sky magnitude
-double irradiance = -1;
-double nelm = -1;
+double irradiance = -1; 
+double nelm = -1; //NE
 int concentration = -1;
 
 // Search for parameter in HTTP POST request
