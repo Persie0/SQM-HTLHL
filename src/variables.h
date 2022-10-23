@@ -29,6 +29,8 @@ RTC_DATA_ATTR double SQM_LIMIT = FALLBACK_SQM_LIMIT;
 RTC_DATA_ATTR bool SEEING_ENABLED = false;
 // Sky state indicators
 RTC_DATA_ATTR int CLOUD_STATE = -1;
+RTC_DATA_ATTR int BAD_SKY_STATE_COUNT = 0;
+RTC_DATA_ATTR int GOOD_SKY_STATE_COUNT = 0;
 
 #define SKYCLEAR 1
 #define SKYPCLOUDY 2
@@ -41,7 +43,7 @@ float ambient, object = -1; //TQ, HT
 double lux = -1; // Resulting lux value
 int lightning_distanceToStorm = -1;
 float luminosity = -1; // the SQM value, sky magnitude
-double irradiance = -1; 
+String seeing = "-1"; 
 double nelm = -1; //NE
 int concentration = -1;
 

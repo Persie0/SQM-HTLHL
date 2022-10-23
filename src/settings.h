@@ -39,6 +39,9 @@
 
 #define EN_Display GPIO_NUM_4 // power-control pin to enable the display
 
+#define MYPORT_TX 17 //TX Port for UART communication
+#define MYPORT_RX 16 //RX Port for UART communication
+
 // ===========================================================
 //                 ESP32 SETTINGS
 // ===========================================================

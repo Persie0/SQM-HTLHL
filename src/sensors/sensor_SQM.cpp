@@ -1,7 +1,7 @@
 #include "FreqCountESP.h"
 #include "settings.h"
 
-bool read_TSL237(float &mySQMreading, double &irradiance, double &nelm, double SQM_LIMIT)
+bool read_TSL237(float &mySQMreading, double &nelm, double SQM_LIMIT)
 {
   uint32_t frequency = 1; // measured TSL237 frequency which is dependent on light
   if (FreqCountESP.available())
@@ -22,7 +22,7 @@ bool read_TSL237(float &mySQMreading, double &irradiance, double &nelm, double S
       mySQMreading = 0.0;
     }
     nelm = 7.93 - 5.0 * log10((pow(10, (4.316 - (mySQMreading / 5.0))) + 1));
-    irradiance = frequency / 2.3e3; // calculate irradiance as uW/(cm^2)
+    //irradiance = frequency / 2.3e3; // calculate irradiance as uW/(cm^2)
     return true;
   }
   else

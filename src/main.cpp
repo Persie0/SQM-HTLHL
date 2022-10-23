@@ -24,7 +24,6 @@
 #include <AsyncTCP.h>
 #include <SPIFFS.h>
 
-
 #include "FreqCountESP.h"
 #include "SSD1306Wire.h"
 
@@ -39,6 +38,9 @@
 
 using namespace std;
 
+HardwareSerial SerialPort(2); // use UART2
+
+String incomingString;
 int sleepTime = 0;
 bool sleepForever = false;
 vector<String> sensorErrors;
@@ -63,7 +65,7 @@ void activate_access_point()
 {
   initSPIFFS();
   WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
-  WiFi.mode(WIFI_AP); // Switch WiFi off
+  WiFi.mode(WIFI_AP);        // Switch WiFi off
   delay(10);
   WiFi.softAPConfig(localIP, gateway, subnet);
   // NULL sets an open Access Point
@@ -106,9 +108,9 @@ void activate_access_point()
       ESP.restart(); });
   server.begin();
   unsigned long startTime = millis();
-  while ((millis() - startTime) < 1200*1000)// run for 20min
-  { 
-  delay(100);
+  while ((millis() - startTime) < 1200 * 1000) // run for 20min
+  {
+    delay(100);
   }
   // if no changes - sleep forever
   esp_deep_sleep(0);
@@ -258,7 +260,7 @@ bool post_data()
 
   std::stringstream data;
   // create a json string
-  data << "{\"raining\":\"" << raining << "\",\"luminosity\":\"" << luminosity << "\",\"irradiance\":\"" << irradiance << "\",\"nelm\":\"" << nelm << "\",\"concentration\":\"" << concentration << "\",\"object\":\"" << object << "\",\"ambient\":\"" << ambient << "\",\"lux\":\"" << lux << "\",\"lightning_distanceToStorm\":\"" << lightning_distanceToStorm << "\"}";
+  data << "{\"raining\":\"" << raining << "\",\"luminosity\":\"" << luminosity << "\",\"seeing\":\"" << seeing << "\",\"nelm\":\"" << nelm << "\",\"concentration\":\"" << concentration << "\",\"object\":\"" << object << "\",\"ambient\":\"" << ambient << "\",\"lux\":\"" << lux << "\",\"lightning_distanceToStorm\":\"" << lightning_distanceToStorm << "\"}";
   std::string s = data.str();
   // Your Domain name with URL path or IP address with path
   http.begin(client, SEND_SERVER);
@@ -315,15 +317,45 @@ bool check_seeing()
   getcloudstate();
   if (CLOUD_STATE == SKYCLEAR && !raining && lux < 50 && luminosity > 18 && concentration < 10000)
   {
-    // keep Seeing on in deepsleep
-    high_hold_Pin(EN_SEEING);
     return true;
   }
   else
   {
-    digitalWrite(EN_SEEING, LOW);
     return false;
   }
+}
+
+bool shutdown_Seeing()
+{
+  SerialPort.begin(9600, 134217756U, MYPORT_RX, MYPORT_TX, false);
+  SerialPort.println("shut");
+  unsigned long startTime = millis();
+  while (Serial.available() == 0 && ((millis() - startTime) < 15 * 1000))// wait for 15s for data available
+  {}                                     
+  String str = Serial.readString(); // read until timeout
+  str.trim();
+  if(str=="ok"){
+    SerialPort.println("shutdown");
+    return true;
+  }
+  return false;
+}
+
+bool get_Seeing()
+{
+  SerialPort.begin(9600, 134217756U, MYPORT_RX, MYPORT_TX, false);
+  SerialPort.println("get");
+  unsigned long startTime = millis();
+  while (Serial.available() == 0)// wait for 15s for data available
+  {
+    if((millis() - startTime) > 15 * 1000){
+      return false;
+    }
+  }                                     
+  String teststr = Serial.readString(); // read until timeout
+  teststr.trim();
+  seeing = teststr;
+  return true;
 }
 
 void setup()
@@ -403,7 +435,7 @@ void loop()
   {
     sensorErrors.push_back("read_AS3935");
   }
-  if (!read_TSL237(luminosity, irradiance, nelm, SQM_LIMIT))
+  if (!read_TSL237(luminosity, nelm, SQM_LIMIT))
   {
     sensorErrors.push_back("read_TSL237");
   }
@@ -469,11 +501,42 @@ void loop()
     high_hold_Pin(EN_Display);
   }
 
-  check_seeing();
+  //check if sensor values are good and if seeing should be enabled
+  if(check_seeing()){
+    ++GOOD_SKY_STATE_COUNT;
+    //check if skystate is constant
+    if(BAD_SKY_STATE_COUNT==1)
+    {
+      BAD_SKY_STATE_COUNT=0;
+    }
+    if(GOOD_SKY_STATE_COUNT>2){
+    BAD_SKY_STATE_COUNT=0;
+    // keep Seeing on in deepsleep
+    high_hold_Pin(EN_SEEING);
+    }
+  }
+  else{
+    ++BAD_SKY_STATE_COUNT;
+    //check if skystate is constant
+    if(GOOD_SKY_STATE_COUNT==1)
+    {
+      GOOD_SKY_STATE_COUNT=0;
+    }
+    //shutdown SEEING if bad skystate
+    if(BAD_SKY_STATE_COUNT==2){
+      shutdown_Seeing();
+      GOOD_SKY_STATE_COUNT=0;
+    }
+    //cut power for SEEING if bad skystate after 3rd time + buffertime
+    //to make shure RPi is shut down
+    if(BAD_SKY_STATE_COUNT==3+(60/SLEEPTIME_s)){
+    digitalWrite(EN_SEEING, LOW);
+    }
+  }
 
   DisplayStatus();
 
   WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
 
-  esp_deep_sleep(sleepTime * 1000000);
+  esp_deep_sleep(sleepTime * 1000000);//send ESP32 to deepsleep
 }
