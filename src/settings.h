@@ -8,7 +8,7 @@
 
 // WiFi credentials.
 #define FALLBACK_WIFI_SSID "WLAN Wetter DW"
-#define FALLBACK_WIFI_PASS "michimoni"
+#define FALLBACK_WIFI_PASS ""
 
 #define FALLBACK_SERVER_IP "192.168.1.7"
 #define serverPort "5000"
