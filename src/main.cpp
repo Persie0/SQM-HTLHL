@@ -61,25 +61,27 @@ String wifi_info(const String &var)
   return "SSID: " + WIFI_SSID + ", \nPW: " + WIFI_PASS + ", \nServer IP: " + SERVER_IP;
 }
 
+// activates the access point and provides website for changing WIFI settings
 void activate_access_point()
 {
   initSPIFFS();
   WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
-  WiFi.mode(WIFI_AP);        // Switch WiFi off
+  WiFi.mode(WIFI_AP);        // AP mode
   delay(10);
+  // AP IP settings
   WiFi.softAPConfig(localIP, gateway, subnet);
   // NULL sets an open Access Point
   WiFi.softAP("ESP-WIFI-MANAGER", NULL);
-
-  // Web Server Root URL
+  // Web Server Root URL = IP = wifimanager.html
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
             { request->send(SPIFFS, "/wifimanager.html", "text/html"); });
-
   server.serveStatic("/", SPIFFS, "/");
-
+  // when changing WIFI settings on the website
   server.on("/", HTTP_POST, [](AsyncWebServerRequest *request)
             {
+        // get html form field parameters
       int params = request->params();
+      // loop through parameters
       for(int i=0;i<params;i++){
         AsyncWebParameter* p = request->getParam(i);
         if(p->isPost()){
@@ -103,9 +105,11 @@ void activate_access_point()
           }
         }
       }
+      // send confirmation  & restart
       request->send(200, "text/plain", "Done. ESP will restart, connect to your router "+ String(WIFI_SSID.c_str())+" and go to IP address: " + SERVER_IP);
       delay(6000);
       ESP.restart(); });
+  // start server (website)
   server.begin();
   unsigned long startTime = millis();
   while ((millis() - startTime) < 1200 * 1000) // run for 20min
@@ -113,9 +117,10 @@ void activate_access_point()
     delay(100);
   }
   // if no changes - sleep forever
-  esp_deep_sleep(0);
+  esp_deep_sleep(999999* 1000000);
 }
 
+// show current status on display
 void DisplayStatus()
 {
   if (DISPLAY_ON)
@@ -279,6 +284,7 @@ bool post_data()
   }
 }
 
+// calculate if cloudy/clear sky
 void getcloudstate()
 {
   static int setpoint1 = 22; // setpoint values used to determine sky state
@@ -325,33 +331,42 @@ bool check_seeing()
   }
 }
 
-bool shutdown_Seeing()
+// send over uart that palanning on shutdown seeing
+bool UART_shutdown_Seeing()
 {
   SerialPort.begin(9600, 134217756U, MYPORT_RX, MYPORT_TX, false);
   SerialPort.println("shut");
   unsigned long startTime = millis();
-  while (Serial.available() == 0 && ((millis() - startTime) < 15 * 1000))// wait for 15s for data available
-  {}                                     
+  while (Serial.available() == 0) // wait for 15s for data available
+  {
+    if ((millis() - startTime) > 15 * 1000)
+    {
+      return false;
+    }
+  }
   String str = Serial.readString(); // read until timeout
   str.trim();
-  if(str=="ok"){
+  if (str == "ok")
+  {
     SerialPort.println("shutdown");
     return true;
   }
   return false;
 }
 
-bool get_Seeing()
+// get Seeing value over UART
+bool UART_get_Seeing()
 {
   SerialPort.begin(9600, 134217756U, MYPORT_RX, MYPORT_TX, false);
   SerialPort.println("get");
   unsigned long startTime = millis();
-  while (Serial.available() == 0)// wait for 15s for data available
+  while (Serial.available() == 0) // wait for 15s for data available
   {
-    if((millis() - startTime) > 15 * 1000){
+    if ((millis() - startTime) > 15 * 1000)
+    {
       return false;
     }
-  }                                     
+  }
   String teststr = Serial.readString(); // read until timeout
   teststr.trim();
   seeing = teststr;
@@ -362,7 +377,7 @@ void setup()
 {
   // Serial.begin(115200);
 
-  // enable display if set
+  // enable display if set, and read network settings
   if (!hasInitialized)
   {
     initSPIFFS();
@@ -501,36 +516,41 @@ void loop()
     high_hold_Pin(EN_Display);
   }
 
-  //check if sensor values are good and if seeing should be enabled
-  if(check_seeing()){
+  // check if sensor values are good and if seeing should be enabled
+  if (check_seeing())
+  {
     ++GOOD_SKY_STATE_COUNT;
-    //check if skystate is constant
-    if(BAD_SKY_STATE_COUNT==1)
+    // check if skystate is constant
+    if (BAD_SKY_STATE_COUNT == 1)
     {
-      BAD_SKY_STATE_COUNT=0;
+      BAD_SKY_STATE_COUNT = 0;
     }
-    if(GOOD_SKY_STATE_COUNT>2){
-    BAD_SKY_STATE_COUNT=0;
-    // keep Seeing on in deepsleep
-    high_hold_Pin(EN_SEEING);
+    if (GOOD_SKY_STATE_COUNT > 2)
+    {
+      BAD_SKY_STATE_COUNT = 0;
+      // keep Seeing on in deepsleep
+      high_hold_Pin(EN_SEEING);
     }
   }
-  else{
+  else
+  {
     ++BAD_SKY_STATE_COUNT;
-    //check if skystate is constant
-    if(GOOD_SKY_STATE_COUNT==1)
+    // check if skystate is constant
+    if (GOOD_SKY_STATE_COUNT == 1)
     {
-      GOOD_SKY_STATE_COUNT=0;
+      GOOD_SKY_STATE_COUNT = 0;
     }
-    //shutdown SEEING if bad skystate
-    if(BAD_SKY_STATE_COUNT==2){
-      shutdown_Seeing();
-      GOOD_SKY_STATE_COUNT=0;
+    // shutdown SEEING if bad skystate
+    if (BAD_SKY_STATE_COUNT == 2)
+    {
+      UART_shutdown_Seeing();
+      GOOD_SKY_STATE_COUNT = 0;
     }
-    //cut power for SEEING if bad skystate after 3rd time + buffertime
-    //to make shure RPi is shut down
-    if(BAD_SKY_STATE_COUNT==3+(60/SLEEPTIME_s)){
-    digitalWrite(EN_SEEING, LOW);
+    // cut power for SEEING if bad skystate after 3rd time + buffertime
+    // to make shure RPi is shut down
+    if (BAD_SKY_STATE_COUNT == 3 + (60 / SLEEPTIME_s))
+    {
+      digitalWrite(EN_SEEING, LOW);
     }
   }
 
@@ -538,5 +558,5 @@ void loop()
 
   WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
 
-  esp_deep_sleep(sleepTime * 1000000);//send ESP32 to deepsleep
+  esp_deep_sleep(sleepTime * 1000000); // send ESP32 to deepsleep
 }
