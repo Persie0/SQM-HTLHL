@@ -7,7 +7,7 @@
  * @brief   Sky Quality Meter that sends sensor values to an API endpoint
  ******************************************************************************
  */
-
+// setpoints , lux max
 #include <Arduino.h>
 #include <vector>
 #include "settings.h"
@@ -55,7 +55,7 @@ AsyncWebServer server(80);
 // for 128x64 displays:
 SSD1306Wire display(0x3c, SDA, SCL); // ADDRESS, SDA, SCL
 
-// Replaces placeholder with Wifi info
+// Replaces placeholder on website with Wifi info
 String wifi_info(const String &var)
 {
   return "SSID: " + WIFI_SSID + ", \nPW: " + WIFI_PASS + ", \nServer IP: " + SERVER_IP;
@@ -64,6 +64,7 @@ String wifi_info(const String &var)
 // activates the access point and provides website for changing WIFI settings
 void activate_access_point()
 {
+  // initialise storage to later read/write from/to it
   initSPIFFS();
   WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
   WiFi.mode(WIFI_AP);        // AP mode
@@ -72,7 +73,7 @@ void activate_access_point()
   WiFi.softAPConfig(localIP, gateway, subnet);
   // NULL sets an open Access Point
   WiFi.softAP("ESP-WIFI-MANAGER", NULL);
-  // Web Server Root URL = IP = wifimanager.html
+  // Web Server Root URL = IP/ = wifimanager.html
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request)
             { request->send(SPIFFS, "/wifimanager.html", "text/html"); });
   server.serveStatic("/", SPIFFS, "/");
@@ -117,7 +118,7 @@ void activate_access_point()
     delay(100);
   }
   // if no changes - sleep forever
-  esp_deep_sleep(999999* 1000000);
+  esp_deep_sleep(999999 * 1000000);
 }
 
 // show current status on display
@@ -227,6 +228,19 @@ bool fetch_settings()
     DynamicJsonDocument doc(2048);
     deserializeJson(doc, http.getStream());
     // Read values
+    if (doc.containsKey("setpoint1"))
+    {
+      SP1 = doc["setpoint1"].as<double>();
+    }
+    if (doc.containsKey("setpoint2"))
+    {
+      SP2 = doc["setpoint2"].as<double>();
+    }
+    if (doc.containsKey("max_lux"))
+    {
+      MAX_LUX = doc["max_lux"].as<double>();
+    }
+
     if (doc.containsKey("SLEEPTIME_s"))
     {
       SLEEPTIME_s = doc["SLEEPTIME_s"].as<int>();
@@ -287,8 +301,6 @@ bool post_data()
 // calculate if cloudy/clear sky
 void getcloudstate()
 {
-  static int setpoint1 = 22; // setpoint values used to determine sky state
-  static int setpoint2 = 2;
   float TempDiff = ambient - object;
   // object temp is IR temp of sky which at night time will be a lot less than ambient temp
   // so TempDiff is basically ambient + abs(object)
@@ -300,15 +312,15 @@ void getcloudstate()
 
   // Readings are only valid at night when dark and sensor is pointed to sky
   // During the day readings are meaningless
-  if (TempDiff > setpoint1)
+  if (TempDiff > SP1)
   {
     CLOUD_STATE = SKYCLEAR; // clear
   }
-  else if ((TempDiff > setpoint2) && (TempDiff < setpoint1))
+  else if ((TempDiff > SP2) && (TempDiff < SP1))
   {
     CLOUD_STATE = SKYPCLOUDY; // partly cloudy
   }
-  else if (TempDiff < setpoint2)
+  else if (TempDiff < SP2)
   {
     CLOUD_STATE = SKYCLOUDY; // cloudy
   }
@@ -318,10 +330,11 @@ void getcloudstate()
   }
 }
 
+// check skystate if ok for Seeing
 bool check_seeing()
 {
   getcloudstate();
-  if (CLOUD_STATE == SKYCLEAR && !raining && lux < 50 && luminosity > 18 && concentration < 10000)
+  if (CLOUD_STATE == SKYCLEAR && MAX_LUX)
   {
     return true;
   }
@@ -375,17 +388,26 @@ bool UART_get_Seeing()
 
 void setup()
 {
-  // Serial.begin(115200);
+  Serial.begin(115200);
 
   // enable display if set, and read network settings
   if (!hasInitialized)
   {
+    if (DISPLAY_ON)
+    {
+      // keep display on in deepsleep
+      high_hold_Pin(EN_Display);
+    }
     initSPIFFS();
-    // Load values saved in SPIFFS
-    WIFI_SSID = readFile(SPIFFS, ssidPath);
-    WIFI_PASS = readFile(SPIFFS, passPath);
-    SERVER_IP = readFile(SPIFFS, ipPath);
+    // Load values saved in SPIFFS (if exists, else fallback to settings.h)
+    if (SPIFFS.exists(ssidPath))
+      WIFI_SSID = readFile(SPIFFS, ssidPath);
+    if (SPIFFS.exists(passPath))
+      WIFI_PASS = readFile(SPIFFS, passPath);
+    if (SPIFFS.exists(ipPath))
+      SERVER_IP = readFile(SPIFFS, ipPath);
     hasInitialized = true;
+    Serial.println(WIFI_SSID);
 
     // Post sensor values - Domain name with URL path or IP address with path
     SEND_SERVER = "http://" + String(SERVER_IP) + ":" + String(serverPort) + "/SQM";
@@ -402,11 +424,6 @@ void setup()
   FreqCountESP.begin(SQMpin, 55);
   Wire.begin(); // I2C bus begin, so can talk to display
 
-  if (DISPLAY_ON)
-  {
-    // keep display on in deepsleep
-    high_hold_Pin(EN_Display);
-  }
   // enable the 5V/3,3V supply voltage for the sensors
   pinMode(EN_3V3, OUTPUT);
   pinMode(EN_5V, OUTPUT);
@@ -420,12 +437,10 @@ void setup()
   {
     sensorErrors.push_back("init_MLX90614");
   }
-  init_TSL2561();
   if (!init_TSL2561())
   {
     sensorErrors.push_back("init_TSL2561");
   }
-  init_AS3935();
   if (!init_AS3935())
   {
     sensorErrors.push_back("init_AS3935");

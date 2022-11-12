@@ -47,16 +47,19 @@
 // ===========================================================
 
 // Display
-#define ESP_MODE 1                     // 0-Offline (just display sensor values), 1-Online (normal), 2-Test (testing sensors, showing errors on display)
+#define ESP_MODE 2                     // 0-Offline (just display sensor values), 1-Online (normal), 2-Test (testing sensors, showing errors on display)
 #define FALLBACK_DISPLAY_TIMEOUT_s 200 /* Time Display will be on after start */
 #define FALLBACK_DISPLAY_ON true       /* display on after start */
 
-#define FALLBACK_SLEEPTIME_s 10              /* Time ESP32 will go to sleep (in seconds) */
-#define FALLBACK_NO_WIFI_MAX_RETRIES 5       /* Time ESP32 will go to sleep (in seconds) */
+#define FALLBACK_SLEEPTIME_s 20             /* Time ESP32 will go to sleep (in seconds) */
+#define FALLBACK_NO_WIFI_MAX_RETRIES 50       /* Time ESP32 will go to sleep (in seconds) */
 #define NOWIFI_SLEEPTIME_s 10                /* Time ESP32 will go to sleep (in seconds) */
 #define FALLBACK_ALWAYS_FETCH_SETTINGS false /* display on after start */
 
 #define FALLBACK_SQM_LIMIT 21.83 // mag limit for earth is 21.95
+#define FALLBACK_SP1 22 // Setpoint 1 (setpoint for clear skies)
+#define FALLBACK_MAXLUX 50 // Max. Lux (for Seeing check)
+#define FALLBACK_SP2 2 // Setpoint 2 (setpoint for cloudy skies)
 
 // ===========================================================
 //                 LIGHTNING SENSOR SETTINGS

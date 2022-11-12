@@ -13,7 +13,7 @@ bool initSPIFFS()
 }
 
 // Read File from SPIFFS
-String readFile(fs::FS &fs, const char *path)
+String readLineOfFile(fs::FS &fs, const char *path)
 {
   File file = fs.open(path);
   if (!file || file.isDirectory())
@@ -21,16 +21,15 @@ String readFile(fs::FS &fs, const char *path)
     return String();
   }
   String fileContent;
-  while (file.available())
+  if (file.available())
   {
     fileContent = file.readStringUntil('\n');
-    break;
   }
   return fileContent;
 }
 
 // Write file to SPIFFS
-bool writeFile(fs::FS &fs, const char *path, const char *message)
+bool writeLineOfFile(fs::FS &fs, const char *path, const char *message)
 {
   File file = fs.open(path, FILE_WRITE);
   if (!file)
