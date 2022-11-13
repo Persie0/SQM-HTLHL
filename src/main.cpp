@@ -278,8 +278,13 @@ bool post_data()
   HTTPClient http;
 
   std::stringstream data;
+  
+String errors="";
+ for (int i = 0; i<sensorErrors.size();i++){
+    errors=errors+sensorErrors[i]+", ";
+ }
   // create a json string
-  data << "{\"raining\":\"" << raining << "\",\"luminosity\":\"" << luminosity << "\",\"seeing\":\"" << seeing << "\",\"nelm\":\"" << nelm << "\",\"concentration\":\"" << concentration << "\",\"object\":\"" << object << "\",\"ambient\":\"" << ambient << "\",\"lux\":\"" << lux << "\",\"lightning_distanceToStorm\":\"" << lightning_distanceToStorm << "\"}";
+  data << "{\"raining\":\"" << raining << "\",\"luminosity\":\"" << luminosity << "\",\"seeing\":\"" << seeing << "\",\"nelm\":\"" << nelm << "\",\"concentration\":\"" << concentration << "\",\"object\":\"" << object << "\",\"ambient\":\"" << ambient << "\",\"lux\":\"" << lux << "\",\"lightning_distanceToStorm\":\"" << lightning_distanceToStorm << "\",\"errors\":\"" << errors << "\"}";
   std::string s = data.str();
   // Your Domain name with URL path or IP address with path
   http.begin(client, SEND_SERVER);
