@@ -284,7 +284,7 @@ String errors="";
     errors=errors+sensorErrors[i]+", ";
  }
   // create a json string
-  data << "{\"raining\":\"" << raining << "\",\"luminosity\":\"" << luminosity << "\",\"seeing\":\"" << seeing << "\",\"nelm\":\"" << nelm << "\",\"concentration\":\"" << concentration << "\",\"object\":\"" << object << "\",\"ambient\":\"" << ambient << "\",\"lux\":\"" << lux << "\",\"lightning_distanceToStorm\":\"" << lightning_distanceToStorm << "\",\"errors\":\"" << errors << "\"}";
+  data << "{\"raining\":\"" << raining << "\",\"luminosity\":\"" << luminosity << "\",\"seeing\":\"" << seeing << "\",\"nelm\":\"" << nelm << "\",\"concentration\":\"" << concentration << "\",\"object\":\"" << object << "\",\"ambient\":\"" << ambient << "\",\"lux\":\"" << lux << "\",\"lightning_distanceToStorm\":\"" << lightning_distanceToStorm << "\",\"errors\":\"" << errors << "\",\"isSeeing\":\"" << SEEING_ENABLED << "\"}";
   std::string s = data.str();
   // Your Domain name with URL path or IP address with path
   http.begin(client, SEND_SERVER);
@@ -549,6 +549,7 @@ void loop()
     {
       BAD_SKY_STATE_COUNT = 0;
       // keep Seeing on in deepsleep
+      SEEING_ENABLED=true;
       high_hold_Pin(EN_SEEING);
     }
   }
@@ -571,6 +572,7 @@ void loop()
     if (BAD_SKY_STATE_COUNT == 3 + (60 / SLEEPTIME_s))
     {
       digitalWrite(EN_SEEING, LOW);
+      SEEING_ENABLED=false;
     }
   }
 
