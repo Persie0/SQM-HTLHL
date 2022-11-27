@@ -5,14 +5,13 @@ IRTherm therm; // Create an IRTherm object to interact with throughout
 
 bool init_MLX90614()
 {
-    if (therm.begin() == false)
+    if (therm.begin(0x5A) == false)
     { // Initialize thermal IR sensor
-
+    return false;
     }
     therm.setUnit(TEMP_C); // Set the library's units to Fahrenheit
     // Alternatively, TEMP_F can be replaced with TEMP_C for Celsius or
     // TEMP_K for Kelvin.
-
     return true;
 }
 

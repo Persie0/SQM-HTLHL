@@ -7,10 +7,10 @@
 // ===========================================================
 
 // WiFi credentials.
-#define FALLBACK_WIFI_SSID "WLAN Wetter DW"
-#define FALLBACK_WIFI_PASS ""
+#define FALLBACK_WIFI_SSID "SQM"
+#define FALLBACK_WIFI_PASS "Passw0rt"
 
-#define FALLBACK_SERVER_IP "192.168.1.7"
+#define FALLBACK_SERVER_IP "192.168.120.210"
 #define serverPort "5000"
 
 // Post sensor values - Domain name with URL path or IP address with path
@@ -47,7 +47,7 @@
 // ===========================================================
 
 // Display
-#define ESP_MODE 2                     // 0-Offline (just display sensor values), 1-Online (normal), 2-Test (testing sensors, showing errors on display)
+#define ESP_MODE 1                     // 0-Offline (just display sensor values), 1-Online (normal), 2-Test (testing sensors, showing errors on display)
 #define FALLBACK_DISPLAY_TIMEOUT_s 200 /* Time Display will be on after start */
 #define FALLBACK_DISPLAY_ON true       /* display on after start */
 
@@ -103,12 +103,12 @@
 //                 LIGHT SENSOR SETTINGS
 // ===========================================================
 
-#define gain 1
+#define gain 0
 // Gain setting, 0 = X1, 1 = X16;
 // If gain = false (0), device is set to low gain (1X)
 // If gain = high (1), device is set to high gain (16X)
 
-#define shuttertime 2
+#define shuttertime 0
 // Integration ("shutter") time in milliseconds
 // If time = 0, integration will be 13.7ms
 // If time = 1, integration will be 101ms

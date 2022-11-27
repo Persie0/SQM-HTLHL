@@ -90,19 +90,19 @@ void activate_access_point()
           if (p->name() == PARAM_INPUT_1) {
             WIFI_SSID = p->value().c_str();
             // Write file to save value
-            writeFile(SPIFFS, ssidPath, WIFI_SSID.c_str());
+            writeLineOfFile(SPIFFS, ssidPath, WIFI_SSID.c_str());
           }
           // HTTP POST pass value
           if (p->name() == PARAM_INPUT_2) {
             WIFI_PASS = p->value().c_str();
             // Write file to save value
-            writeFile(SPIFFS, passPath, WIFI_PASS.c_str());
+            writeLineOfFile(SPIFFS, passPath, WIFI_PASS.c_str());
           }
           // HTTP POST ip value
           if (p->name() == PARAM_INPUT_3) {
             SERVER_IP = p->value().c_str();
             // Write file to save value
-            writeFile(SPIFFS, ipPath, SERVER_IP.c_str());
+            writeLineOfFile(SPIFFS, ipPath, SERVER_IP.c_str());
           }
         }
       }
@@ -284,13 +284,13 @@ String errors="";
     errors=errors+sensorErrors[i]+", ";
  }
   // create a json string
-  data << "{\"raining\":\"" << raining << "\",\"luminosity\":\"" << luminosity << "\",\"seeing\":\"" << seeing << "\",\"nelm\":\"" << nelm << "\",\"concentration\":\"" << concentration << "\",\"object\":\"" << object << "\",\"ambient\":\"" << ambient << "\",\"lux\":\"" << lux << "\",\"lightning_distanceToStorm\":\"" << lightning_distanceToStorm << "\",\"errors\":\"" << errors << "\",\"isSeeing\":\"" << SEEING_ENABLED << "\"}";
-  std::string s = data.str();
+  String search;
+  search="{\"raining\":\""+String(raining)+"\",\"luminosity\":\"" + luminosity + "\",\"seeing\":\"" + seeing + "\",\"nelm\":\"" + nelm + "\",\"concentration\":\"" + concentration + "\",\"object\":\"" + object + "\",\"ambient\":\"" + ambient + "\",\"lux\":\"" + lux + "\",\"lightning_distanceToStorm\":\"" + lightning_distanceToStorm + "\",\"errors\":\"" + errors + "\",\"isSeeing\":\"" + SEEING_ENABLED + "\"}";
   // Your Domain name with URL path or IP address with path
   http.begin(client, SEND_SERVER);
   // If you need an HTTP request with a content type: application/json, use the following:
   http.addHeader("Content-Type", "application/json");
-  int httpResponseCode = http.POST(s.c_str());
+  int httpResponseCode = http.POST(search.c_str());
   // Free resources
   http.end();
   if (httpResponseCode == 200)
@@ -355,14 +355,14 @@ bool UART_shutdown_Seeing()
   SerialPort.begin(9600, 134217756U, MYPORT_RX, MYPORT_TX, false);
   SerialPort.println("shut");
   unsigned long startTime = millis();
-  while (Serial.available() == 0) // wait for 15s for data available
+  while (SerialPort.available() == 0) // wait for 15s for data available
   {
     if ((millis() - startTime) > 15 * 1000)
     {
       return false;
     }
   }
-  String str = Serial.readString(); // read until timeout
+  String str = SerialPort.readString(); // read until timeout
   str.trim();
   if (str == "ok")
   {
@@ -385,7 +385,7 @@ bool UART_get_Seeing()
       return false;
     }
   }
-  String teststr = Serial.readString(); // read until timeout
+  String teststr = SerialPort.readString(); // read until timeout
   teststr.trim();
   seeing = teststr;
   return true;
@@ -406,11 +406,12 @@ void setup()
     initSPIFFS();
     // Load values saved in SPIFFS (if exists, else fallback to settings.h)
     if (SPIFFS.exists(ssidPath))
-      WIFI_SSID = readFile(SPIFFS, ssidPath);
+      WIFI_SSID = readLineOfFile(SPIFFS, ssidPath);
     if (SPIFFS.exists(passPath))
-      WIFI_PASS = readFile(SPIFFS, passPath);
+      WIFI_PASS = readLineOfFile(SPIFFS, passPath);
     if (SPIFFS.exists(ipPath))
-      SERVER_IP = readFile(SPIFFS, ipPath);
+      SERVER_IP = readLineOfFile(SPIFFS, ipPath);
+
     hasInitialized = true;
     Serial.println(WIFI_SSID);
 
@@ -435,17 +436,19 @@ void setup()
   digitalWrite(EN_3V3, HIGH);
   digitalWrite(EN_5V, HIGH);
 
-  delay(50);
+  delay(100);
 
   // initialise sensors, if sensor error add to array
   if (!init_MLX90614())
   {
     sensorErrors.push_back("init_MLX90614");
   }
+  delay(10);
   if (!init_TSL2561())
   {
     sensorErrors.push_back("init_TSL2561");
   }
+  delay(10);
   if (!init_AS3935())
   {
     sensorErrors.push_back("init_AS3935");
@@ -462,14 +465,17 @@ void loop()
   {
     sensorErrors.push_back("read_MLX90614");
   }
+  delay(10);
   if (!read_TSL2561(lux))
   {
     sensorErrors.push_back("read_TSL2561");
   }
+  delay(20);
   if (!read_AS3935(lightning_distanceToStorm))
   {
     sensorErrors.push_back("read_AS3935");
   }
+  delay(10);
   if (!read_TSL237(luminosity, nelm, SQM_LIMIT))
   {
     sensorErrors.push_back("read_TSL237");
