@@ -89,7 +89,7 @@ void activate_access_point()
         if(p->isPost()){
           // HTTP POST ssid value
           if (p->name() == PARAM_INPUT_1) {
-            strcpy(WIFI_SSID,(p->value()).c_str());
+            (p->value()).toCharArray(WIFI_SSID,30);
             // Write file to save value
             if(!writeLineOfFile(SPIFFS, ssidPath, WIFI_SSID))
             {
@@ -98,13 +98,13 @@ void activate_access_point()
           }
           // HTTP POST pass value
           if (p->name() == PARAM_INPUT_2) {
-            strcpy(WIFI_PASS,(p->value()).c_str());
+            (p->value()).toCharArray(WIFI_PASS,30);
             // Write file to save value
             writeLineOfFile(SPIFFS, passPath, WIFI_PASS);
           }
           // HTTP POST ip value
           if (p->name() == PARAM_INPUT_3) {
-            strcpy(SERVER_IP,(p->value()).c_str());
+            (p->value()).toCharArray(SERVER_IP,30);
             // Write file to save value
             writeLineOfFile(SPIFFS, ipPath, SERVER_IP);
           }
@@ -425,7 +425,6 @@ void setup()
     hasInitialized = true;
     // Post sensor values - Domain name with URL path or IP address with path
     ("http://" + String(SERVER_IP) + ":" + String(serverPort) + "/SQM").toCharArray(SEND_SERVER,30);
-    strcpy(SEND_SERVER, ("http://" + String(SERVER_IP) + ":" + String(serverPort) + "/SQM"));
     // Get settings - Domain name with URL path or IP address with path
     ("http://" + String(SERVER_IP) + ":" + String(serverPort) + "/getsettings").toCharArray(FETCH_SERVER,30);
     SPIFFS.end();
