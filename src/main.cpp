@@ -7,7 +7,8 @@
  * @brief   Sky Quality Meter that sends sensor values to an API endpoint
  ******************************************************************************
  */
-// setpoints , lux max
+// Beispielprogramme für zb Pin ein aus, deepsleep,.. 
+// Faktor wie oft hintereinander gut /schlecht auf webinterface
 #include <Arduino.h>
 #include <vector>
 #include "settings.h"
@@ -58,7 +59,7 @@ SSD1306Wire display(0x3c, SDA, SCL); // ADDRESS, SDA, SCL
 // Replaces placeholder on website with Wifi info
 String wifi_info(const String &var)
 {
-  return "SSID: " + WIFI_SSID + ", \nPW: " + WIFI_PASS + ", \nServer IP: " + SERVER_IP;
+  return "SSID: " + String(WIFI_SSID) + ", \nPW: " + String(WIFI_PASS) + ", \nServer IP: " + String(SERVER_IP);
 }
 
 // activates the access point and provides website for changing WIFI settings
@@ -88,27 +89,29 @@ void activate_access_point()
         if(p->isPost()){
           // HTTP POST ssid value
           if (p->name() == PARAM_INPUT_1) {
-            WIFI_SSID = p->value().c_str();
+            strcpy(WIFI_SSID,(p->value()).c_str());
             // Write file to save value
-            writeLineOfFile(SPIFFS, ssidPath, WIFI_SSID.c_str());
+            if(!writeLineOfFile(SPIFFS, ssidPath, WIFI_SSID))
+            {
+              Serial.println("couldnt write");
+            }
           }
           // HTTP POST pass value
           if (p->name() == PARAM_INPUT_2) {
-            WIFI_PASS = p->value().c_str();
+            strcpy(WIFI_PASS,(p->value()).c_str());
             // Write file to save value
-            writeLineOfFile(SPIFFS, passPath, WIFI_PASS.c_str());
+            writeLineOfFile(SPIFFS, passPath, WIFI_PASS);
           }
           // HTTP POST ip value
           if (p->name() == PARAM_INPUT_3) {
-            SERVER_IP = p->value().c_str();
+            strcpy(SERVER_IP,(p->value()).c_str());
             // Write file to save value
-            writeLineOfFile(SPIFFS, ipPath, SERVER_IP.c_str());
+            writeLineOfFile(SPIFFS, ipPath, SERVER_IP);
           }
         }
       }
       // send confirmation  & restart
-      request->send(200, "text/plain", "Done. ESP will restart, connect to your router "+ String(WIFI_SSID.c_str())+" and go to IP address: " + SERVER_IP);
-      delay(6000);
+      request->send(200, "text/plain", "Done. ESP will restart, connect to your router "+ String(WIFI_SSID)+" and go to IP address: " + SERVER_IP);
       ESP.restart(); });
   // start server (website)
   server.begin();
@@ -290,7 +293,7 @@ String errors="";
   http.begin(client, SEND_SERVER);
   // If you need an HTTP request with a content type: application/json, use the following:
   http.addHeader("Content-Type", "application/json");
-  int httpResponseCode = http.POST(search.c_str());
+  int httpResponseCode = http.POST(search);
   // Free resources
   http.end();
   if (httpResponseCode == 200)
@@ -380,7 +383,7 @@ bool UART_get_Seeing()
   unsigned long startTime = millis();
   while (Serial.available() == 0) // wait for 15s for data available
   {
-    if ((millis() - startTime) > 15 * 1000)
+    if ((millis() - startTime) > 1 * 1000)
     {
       return false;
     }
@@ -403,28 +406,35 @@ void setup()
       // keep display on in deepsleep
       high_hold_Pin(EN_Display);
     }
-    initSPIFFS();
+    if(initSPIFFS()){
     // Load values saved in SPIFFS (if exists, else fallback to settings.h)
-    if (SPIFFS.exists(ssidPath))
-      WIFI_SSID = readLineOfFile(SPIFFS, ssidPath);
-    if (SPIFFS.exists(passPath))
-      WIFI_PASS = readLineOfFile(SPIFFS, passPath);
-    if (SPIFFS.exists(ipPath))
-      SERVER_IP = readLineOfFile(SPIFFS, ipPath);
-
+    String temp;
+    if (SPIFFS.exists(ssidPath)){
+    temp=readLineOfFile(SPIFFS, ssidPath);
+    temp.toCharArray(WIFI_SSID,30);
+    }
+    if (SPIFFS.exists(passPath)){
+    temp=readLineOfFile(SPIFFS, passPath);
+    temp.toCharArray(WIFI_PASS,30);
+    }
+    if (SPIFFS.exists(ipPath)){
+    temp=readLineOfFile(SPIFFS, ipPath);
+    temp.toCharArray(SERVER_IP,30);
+    }
+    }
     hasInitialized = true;
-    Serial.println(WIFI_SSID);
-
     // Post sensor values - Domain name with URL path or IP address with path
-    SEND_SERVER = "http://" + String(SERVER_IP) + ":" + String(serverPort) + "/SQM";
+    ("http://" + String(SERVER_IP) + ":" + String(serverPort) + "/SQM").toCharArray(SEND_SERVER,30);
+    strcpy(SEND_SERVER, ("http://" + String(SERVER_IP) + ":" + String(serverPort) + "/SQM"));
     // Get settings - Domain name with URL path or IP address with path
-    FETCH_SERVER = "http://" + String(SERVER_IP) + ":" + String(serverPort) + "/getsettings";
+    ("http://" + String(SERVER_IP) + ":" + String(serverPort) + "/getsettings").toCharArray(FETCH_SERVER,30);
     SPIFFS.end();
   }
 
   // Enable & Set WiFi to station mode
   WiFi.mode(WIFI_STA);
-  WiFi.begin(WIFI_SSID.c_str(), WIFI_PASS.c_str());
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  Serial.println("WIFI:"+String(WIFI_SSID));
   WiFi.setTxPower(WIFI_POWER_19_5dBm);
   // init SQM sensor
   FreqCountESP.begin(SQMpin, 55);
@@ -436,7 +446,7 @@ void setup()
   digitalWrite(EN_3V3, HIGH);
   digitalWrite(EN_5V, HIGH);
 
-  delay(100);
+  delay(5);
 
   // initialise sensors, if sensor error add to array
   if (!init_MLX90614())
@@ -453,7 +463,6 @@ void setup()
   {
     sensorErrors.push_back("init_AS3935");
   }
-
   pinMode(rainS_DO, INPUT);
   pinMode(particle_pin, INPUT);
 }
@@ -470,7 +479,7 @@ void loop()
   {
     sensorErrors.push_back("read_TSL2561");
   }
-  delay(20);
+  delay(10);
   if (!read_AS3935(lightning_distanceToStorm))
   {
     sensorErrors.push_back("read_AS3935");

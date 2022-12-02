@@ -1,12 +1,14 @@
+#ifndef VARIABLES_H
+#define VARIABLES_H
 #include <Arduino.h>
 #include <settings.h>
 
 // Permanently stored values
-RTC_DATA_ATTR String WIFI_SSID = FALLBACK_WIFI_SSID;
-RTC_DATA_ATTR String WIFI_PASS = FALLBACK_WIFI_PASS;
-RTC_DATA_ATTR String SERVER_IP = FALLBACK_WIFI_PASS;
-RTC_DATA_ATTR String SEND_SERVER = fallback_sendserverName;
-RTC_DATA_ATTR String FETCH_SERVER = fallback_fetchserverName;
+RTC_DATA_ATTR char WIFI_SSID[30] = FALLBACK_WIFI_SSID;
+RTC_DATA_ATTR char WIFI_PASS[30] = FALLBACK_WIFI_PASS;
+RTC_DATA_ATTR char SERVER_IP[30] = FALLBACK_WIFI_PASS;
+RTC_DATA_ATTR char SEND_SERVER[30];
+RTC_DATA_ATTR char FETCH_SERVER[30];
 
 // RTC_DATA_ATTR values dont get reset after deepsleep
 RTC_DATA_ATTR int noWifiCount = 0;
@@ -57,4 +59,4 @@ const char *PARAM_INPUT_1 = "ssid";
 const char *PARAM_INPUT_2 = "pass";
 const char *PARAM_INPUT_3 = "ip";
 
-
+#endif

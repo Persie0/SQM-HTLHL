@@ -1,6 +1,6 @@
 
-#ifndef mydefines_h
-#define mydefines_h
+#ifndef SETTINGS_H
+#define SETTINGS_H
 
 // ===========================================================
 //                 WIFI SETTINGS
@@ -10,13 +10,11 @@
 #define FALLBACK_WIFI_SSID "SQM"
 #define FALLBACK_WIFI_PASS "Passw0rt"
 
-#define FALLBACK_SERVER_IP "192.168.120.210"
+#define FALLBACK_SERVER_IP "192.168.43.130"
 #define serverPort "5000"
 
 // Post sensor values - Domain name with URL path or IP address with path
-#define fallback_sendserverName "http://" + String(FALLBACK_SERVER_IP) + ":" + String(serverPort) + "/SQM"
 // Get settings - Domain name with URL path or IP address with path
-#define fallback_fetchserverName "http://" + String(FALLBACK_SERVER_IP) + ":" + String(serverPort) + "/getsettings"
 
 // File paths to save input values permanently
 #define ssidPath  "/ssid.txt"
@@ -46,14 +44,19 @@
 //                 ESP32 SETTINGS
 // ===========================================================
 
+/* You only need to format SPIFFS the first time you run a
+   test or else use the SPIFFS plugin to create a partition
+   https://github.com/me−no−dev/arduino−esp32fs−plugin */
+#define FORMAT_SPIFFS_IF_FAILED false
+
 // Display
 #define ESP_MODE 1                     // 0-Offline (just display sensor values), 1-Online (normal), 2-Test (testing sensors, showing errors on display)
 #define FALLBACK_DISPLAY_TIMEOUT_s 200 /* Time Display will be on after start */
 #define FALLBACK_DISPLAY_ON true       /* display on after start */
 
 #define FALLBACK_SLEEPTIME_s 20             /* Time ESP32 will go to sleep (in seconds) */
-#define FALLBACK_NO_WIFI_MAX_RETRIES 50       /* Time ESP32 will go to sleep (in seconds) */
-#define NOWIFI_SLEEPTIME_s 10                /* Time ESP32 will go to sleep (in seconds) */
+#define FALLBACK_NO_WIFI_MAX_RETRIES 3       /* Time ESP32 will go to sleep (in seconds) */
+#define NOWIFI_SLEEPTIME_s 10                /* if no wifi connection, Time ESP32 will go to sleep (in seconds) */
 #define FALLBACK_ALWAYS_FETCH_SETTINGS false /* display on after start */
 
 #define FALLBACK_SQM_LIMIT 21.83 // mag limit for earth is 21.95
