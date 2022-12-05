@@ -89,7 +89,7 @@ void activate_access_point()
         if(p->isPost()){
           // HTTP POST ssid value
           if (p->name() == PARAM_INPUT_1) {
-            (p->value()).toCharArray(WIFI_SSID,30);
+            (p->value()).toCharArray(WIFI_SSID,60);
             // Write file to save value
             if(!writeLineOfFile(SPIFFS, ssidPath, WIFI_SSID))
             {
@@ -98,13 +98,13 @@ void activate_access_point()
           }
           // HTTP POST pass value
           if (p->name() == PARAM_INPUT_2) {
-            (p->value()).toCharArray(WIFI_PASS,30);
+            (p->value()).toCharArray(WIFI_PASS,60);
             // Write file to save value
             writeLineOfFile(SPIFFS, passPath, WIFI_PASS);
           }
           // HTTP POST ip value
           if (p->name() == PARAM_INPUT_3) {
-            (p->value()).toCharArray(SERVER_IP,30);
+            (p->value()).toCharArray(SERVER_IP,60);
             // Write file to save value
             writeLineOfFile(SPIFFS, ipPath, SERVER_IP);
           }
@@ -112,6 +112,7 @@ void activate_access_point()
       }
       // send confirmation  & restart
       request->send(200, "text/plain", "Done. ESP will restart, connect to your router "+ String(WIFI_SSID)+" and go to IP address: " + SERVER_IP);
+      delay(100);
       ESP.restart(); });
   // start server (website)
   server.begin();
@@ -121,7 +122,7 @@ void activate_access_point()
     delay(100);
   }
   // if no changes - sleep forever
-  esp_deep_sleep(999999 * 1000000);
+  esp_deep_sleep(-77777777);
 }
 
 // show current status on display
@@ -136,7 +137,7 @@ void DisplayStatus()
     {
       if (sleepForever)
       {
-        display.drawStringMaxWidth(0, 0, 128, "Sleeping forever");
+        display.drawStringMaxWidth(0, 0, 128, "WIFI AP / Dead");
         display.drawStringMaxWidth(0, 12, 128, "no WIFI, server error");
         display.drawStringMaxWidth(0, 24, 128, "or server not reachable");
       }
@@ -397,36 +398,35 @@ bool UART_get_Seeing()
 void setup()
 {
   Serial.begin(115200);
-
-  // enable display if set, and read network settings
-  if (!hasInitialized)
-  {
-    if (DISPLAY_ON)
+  if (DISPLAY_ON)
     {
       // keep display on in deepsleep
       high_hold_Pin(EN_Display);
     }
+  // enable display if set, and read network settings
+  if (!hasInitialized)
+  {
     if(initSPIFFS()){
     // Load values saved in SPIFFS (if exists, else fallback to settings.h)
     String temp;
     if (SPIFFS.exists(ssidPath)){
     temp=readLineOfFile(SPIFFS, ssidPath);
-    temp.toCharArray(WIFI_SSID,30);
+    temp.toCharArray(WIFI_SSID,60);
     }
     if (SPIFFS.exists(passPath)){
     temp=readLineOfFile(SPIFFS, passPath);
-    temp.toCharArray(WIFI_PASS,30);
+    temp.toCharArray(WIFI_PASS,60);
     }
     if (SPIFFS.exists(ipPath)){
     temp=readLineOfFile(SPIFFS, ipPath);
-    temp.toCharArray(SERVER_IP,30);
+    temp.toCharArray(SERVER_IP,60);
     }
     }
     hasInitialized = true;
     // Post sensor values - Domain name with URL path or IP address with path
-    ("http://" + String(SERVER_IP) + ":" + String(serverPort) + "/SQM").toCharArray(SEND_SERVER,30);
+    ("http://" + String(SERVER_IP) + ":" + String(serverPort) + "/SQM").toCharArray(SEND_SERVER,60);
     // Get settings - Domain name with URL path or IP address with path
-    ("http://" + String(SERVER_IP) + ":" + String(serverPort) + "/getsettings").toCharArray(FETCH_SERVER,30);
+    ("http://" + String(SERVER_IP) + ":" + String(serverPort) + "/getsettings").toCharArray(FETCH_SERVER,60);
     SPIFFS.end();
   }
 
@@ -593,6 +593,5 @@ void loop()
   DisplayStatus();
 
   WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
-
   esp_deep_sleep(sleepTime * 1000000); // send ESP32 to deepsleep
 }
