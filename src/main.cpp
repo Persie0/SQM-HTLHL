@@ -38,23 +38,7 @@
 #include "variables.h"
 
 using namespace std;
-
-HardwareSerial SerialPort(2); // use UART2
-
-String incomingString;
-int sleepTime = 0;
-bool sleepForever = false;
 vector<String> sensorErrors;
-
-// if it has no internet - Access Point, WIFI settings
-IPAddress localIP(192, 168, 1, 1);
-IPAddress gateway(192, 168, 1, 0);
-IPAddress subnet(255, 255, 255, 0);
-
-// Create AsyncWebServer object on port 80
-AsyncWebServer server(80);
-// for 128x64 displays:
-SSD1306Wire display(0x3c, SDA, SCL); // ADDRESS, SDA, SCL
 
 // Replaces placeholder on website with Wifi info
 String wifi_info(const String &var)
@@ -232,6 +216,10 @@ bool fetch_settings()
     DynamicJsonDocument doc(2048);
     deserializeJson(doc, http.getStream());
     // Read values
+    if (doc.containsKey("seeing_thr"))
+    {
+      seeing_thr = doc["seeing_thr"].as<int>();
+    }
     if (doc.containsKey("setpoint1"))
     {
       SP1 = doc["setpoint1"].as<double>();
@@ -539,7 +527,7 @@ void loop()
   if (serverErrorCount > sendCount && serverErrorCount > NO_WIFI_MAX_RETRIES)
   {
     // sleep forever
-    sleepTime = 0;
+    sleepTime = -77777777;
     sleepForever = true;
   }
 
@@ -548,17 +536,14 @@ void loop()
   {
     // keep display on in deepsleep
     high_hold_Pin(EN_Display);
+    delay(10);
   }
 
   // check if sensor values are good and if seeing should be enabled
   if (check_seeing())
   {
     ++GOOD_SKY_STATE_COUNT;
-    // check if skystate is constant
-    if (BAD_SKY_STATE_COUNT == 1)
-    {
-      BAD_SKY_STATE_COUNT = 0;
-    }
+    //if good skystate
     if (GOOD_SKY_STATE_COUNT > 2)
     {
       BAD_SKY_STATE_COUNT = 0;
@@ -570,23 +555,19 @@ void loop()
   else
   {
     ++BAD_SKY_STATE_COUNT;
-    // check if skystate is constant
-    if (GOOD_SKY_STATE_COUNT == 1)
-    {
-      GOOD_SKY_STATE_COUNT = 0;
-    }
+    GOOD_SKY_STATE_COUNT = 0;
     // shutdown SEEING if bad skystate
     if (BAD_SKY_STATE_COUNT == 2)
     {
       UART_shutdown_Seeing();
       GOOD_SKY_STATE_COUNT = 0;
+      SEEING_ENABLED=false;
     }
     // cut power for SEEING if bad skystate after 3rd time + buffertime
     // to make shure RPi is shut down
     if (BAD_SKY_STATE_COUNT == 3 + (60 / SLEEPTIME_s))
     {
       digitalWrite(EN_SEEING, LOW);
-      SEEING_ENABLED=false;
     }
   }
 

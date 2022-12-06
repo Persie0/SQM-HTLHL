@@ -58,6 +58,7 @@
 #define FALLBACK_NO_WIFI_MAX_RETRIES 3       /* Time ESP32 will go to sleep (in seconds) */
 #define NOWIFI_SLEEPTIME_s 5                /* if no wifi connection, Time ESP32 will go to sleep (in seconds) */
 #define FALLBACK_ALWAYS_FETCH_SETTINGS false /* display on after start */
+#define FALLBACK_seeing_thr 3
 
 #define FALLBACK_SQM_LIMIT 21.83 // mag limit for earth is 21.95
 #define FALLBACK_SP1 22 // Setpoint 1 (setpoint for clear skies)

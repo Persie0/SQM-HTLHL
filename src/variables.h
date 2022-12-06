@@ -3,6 +3,22 @@
 #include <Arduino.h>
 #include <settings.h>
 
+HardwareSerial SerialPort(2); // use UART2
+
+String incomingString;
+int sleepTime = 0;
+bool sleepForever = false;
+
+// if it has no internet - Access Point, WIFI settings
+IPAddress localIP(192, 168, 1, 1);
+IPAddress gateway(192, 168, 1, 0);
+IPAddress subnet(255, 255, 255, 0);
+
+// Create AsyncWebServer object on port 80
+AsyncWebServer server(80);
+// for 128x64 displays:
+SSD1306Wire display(0x3c, SDA, SCL); // ADDRESS, SDA, SCL
+
 // Permanently stored values
 RTC_DATA_ATTR char WIFI_SSID[60] = FALLBACK_WIFI_SSID;
 RTC_DATA_ATTR char WIFI_PASS[60] = FALLBACK_WIFI_PASS;
@@ -29,6 +45,7 @@ RTC_DATA_ATTR bool DISPLAY_ON = FALLBACK_DISPLAY_ON;
 RTC_DATA_ATTR bool ALWAYS_FETCH_SETTINGS = FALLBACK_ALWAYS_FETCH_SETTINGS;
 RTC_DATA_ATTR double SQM_LIMIT = FALLBACK_SQM_LIMIT;
 RTC_DATA_ATTR bool SEEING_ENABLED = false;
+RTC_DATA_ATTR int seeing_thr = FALLBACK_seeing_thr;
 
 RTC_DATA_ATTR double SP1 = FALLBACK_SP1;
 RTC_DATA_ATTR double SP2 = FALLBACK_SP2;
