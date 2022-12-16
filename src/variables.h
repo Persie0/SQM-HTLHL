@@ -8,6 +8,7 @@ HardwareSerial SerialPort(2); // use UART2
 String incomingString;
 int sleepTime = 0;
 bool sleepForever = false;
+RTC_DATA_ATTR vector <bool> lastSeeingChecks;
 
 // if it has no internet - Access Point, WIFI settings
 IPAddress localIP(192, 168, 1, 1);

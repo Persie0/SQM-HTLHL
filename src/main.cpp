@@ -8,6 +8,7 @@
  ******************************************************************************
  */
 // Beispielprogramme für zb Pin ein aus, deepsleep,.. 
+//Debugger inbestrieb
 // Faktor wie oft hintereinander gut /schlecht auf webinterface
 #include <Arduino.h>
 #include <vector>
@@ -109,6 +110,90 @@ void activate_access_point()
   esp_deep_sleep(-77777777);
 }
 
+
+//check if sky quality was good for long enough
+void check_seeing_threshhold(){
+  // check if sensor values are good and if seeing should be enabled
+  // good sky state
+  if (check_seeing())
+  {
+    ++GOOD_SKY_STATE_COUNT;
+
+    //insert true at beginning of vector
+    lastSeeingChecks.insert(lastSeeingChecks.begin(), true);
+    //if lastSeeingChecks.size() > 5, pop last element
+    if (lastSeeingChecks.size() > 5)
+    {
+      lastSeeingChecks.pop_back();
+    }
+
+    //check if more than 2 good in last 5 checks
+    int goodcount = 0;
+    for (int i = 0; i < lastSeeingChecks.size(); i++)
+    {
+      if (lastSeeingChecks[i])
+      {
+        goodcount++;
+      }
+    }
+    //if >= 2 good in last 5 checks, reset BAD_SKY_STATE_COUNT
+    if (goodcount >= 2)
+    {
+      BAD_SKY_STATE_COUNT = 0;
+    }
+
+
+    //if good skystate for long enough, enable seeing
+    if (GOOD_SKY_STATE_COUNT >= seeing_thr)
+    {
+      // keep Seeing on in deepsleep
+      SEEING_ENABLED=true;
+      high_hold_Pin(EN_SEEING);
+    }
+  }
+  else
+  {
+    ++BAD_SKY_STATE_COUNT;
+
+    //insert false at beginning of vector
+    lastSeeingChecks.insert(lastSeeingChecks.begin(), false);
+    //if lastSeeingChecks.size() > 5, pop last element
+    if (lastSeeingChecks.size() > 5)
+    {
+      lastSeeingChecks.pop_back();
+    }
+
+    //check if more than 2 false in last 5 checks
+    int falsecount = 0;
+    for (int i = 0; i < lastSeeingChecks.size(); i++)
+    {
+      if (lastSeeingChecks[i])
+      {
+        falsecount++;
+      }
+    }
+    //if >= 2 false in last 5 checks, reset GoodSkyStateCount
+    if (falsecount >= 2)
+    {
+      GOOD_SKY_STATE_COUNT = 0;
+    }
+
+    
+    // shutdown SEEING if bad skystate
+    if (BAD_SKY_STATE_COUNT == seeing_thr)
+    {
+      UART_shutdown_Seeing();
+      SEEING_ENABLED=false;
+    }
+    // cut power for SEEING if bad skystate after 3rd time + buffertime
+    // to make shure RPi is shut down
+    if (BAD_SKY_STATE_COUNT == 3 + (int)(60 / SLEEPTIME_s))
+    {
+      digitalWrite(EN_SEEING, LOW);
+    }
+  }
+
+}
 // show current status on display
 void DisplayStatus()
 {
@@ -331,7 +416,7 @@ void getcloudstate()
 bool check_seeing()
 {
   getcloudstate();
-  if (CLOUD_STATE == SKYCLEAR && MAX_LUX)
+  if (CLOUD_STATE == SKYCLEAR && lux < MAX_LUX)
   {
     return true;
   }
@@ -382,6 +467,8 @@ bool UART_get_Seeing()
   seeing = teststr;
   return true;
 }
+
+
 
 void setup()
 {
@@ -539,38 +626,9 @@ void loop()
     delay(10);
   }
 
-  // check if sensor values are good and if seeing should be enabled
-  if (check_seeing())
-  {
-    ++GOOD_SKY_STATE_COUNT;
-    //if good skystate
-    if (GOOD_SKY_STATE_COUNT > 2)
-    {
-      BAD_SKY_STATE_COUNT = 0;
-      // keep Seeing on in deepsleep
-      SEEING_ENABLED=true;
-      high_hold_Pin(EN_SEEING);
-    }
-  }
-  else
-  {
-    ++BAD_SKY_STATE_COUNT;
-    GOOD_SKY_STATE_COUNT = 0;
-    // shutdown SEEING if bad skystate
-    if (BAD_SKY_STATE_COUNT == 2)
-    {
-      UART_shutdown_Seeing();
-      GOOD_SKY_STATE_COUNT = 0;
-      SEEING_ENABLED=false;
-    }
-    // cut power for SEEING if bad skystate after 3rd time + buffertime
-    // to make shure RPi is shut down
-    if (BAD_SKY_STATE_COUNT == 3 + (60 / SLEEPTIME_s))
-    {
-      digitalWrite(EN_SEEING, LOW);
-    }
-  }
 
+  check_seeing_threshhold();
+  
   DisplayStatus();
 
   WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
