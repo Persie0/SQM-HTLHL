@@ -246,10 +246,6 @@ bool fetch_settings()
     {
       DISPLAY_ON = doc["DISPLAY_ON"].as<bool>();
     }
-    if (doc.containsKey("check_everytime"))
-    {
-      ALWAYS_FETCH_SETTINGS = doc["check_everytime"].as<bool>();
-    }
     if (doc.containsKey("set_sqm_limit"))
     {
       SQM_LIMIT = doc["set_sqm_limit"].as<double>();
@@ -495,12 +491,13 @@ bool getSavedWifiSettings()
 
 void setup()
 {
-  Serial.begin(115200);
   if (DISPLAY_ON)
   {
     // keep display on in deepsleep
     high_hold_Pin(EN_Display);
   }
+  Serial.begin(115200);
+
   // read network settings once
   if (!hasInitialized)
   {
@@ -586,7 +583,7 @@ void loop()
   if (WiFi.status() == WL_CONNECTED)
   {
     // fetch settings if not loaded yet or desired
-    if (!settingsLoaded || ALWAYS_FETCH_SETTINGS)
+    if (!settingsLoaded)
     {
       settingsLoaded = fetch_settings();
     }
