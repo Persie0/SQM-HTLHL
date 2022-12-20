@@ -29,7 +29,7 @@
 #define particle_pin 27  // particle sensor pin; reciving the sensor values with it
 #define lightning_pin 13 // lightning Sensor Pin; reciving the sensor values with it
 #define SQMpin 25        // TSL237 OUT to digital pin 25
-#define rainS_DO 35      // the rain sensor digital port pin, raining=yes/no
+#define rainS_DO 18      // the rain sensor digital port pin, raining=yes/no
 
 #define EN_3V3 2              // power-control pin to enable the 3,3V for the sensors
 #define EN_5V 15              // power-control pin to enable the 5V for the sensors

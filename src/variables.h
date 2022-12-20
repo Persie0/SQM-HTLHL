@@ -8,7 +8,6 @@ HardwareSerial SerialPort(2); // use UART2
 String incomingString;
 int sleepTime = 0;
 bool sleepForever = false;
-RTC_DATA_ATTR vector <bool> lastSeeingChecks;
 
 // if it has no internet - Access Point, WIFI settings
 IPAddress localIP(192, 168, 1, 1);
@@ -21,11 +20,11 @@ AsyncWebServer server(80);
 SSD1306Wire display(0x3c, SDA, SCL); // ADDRESS, SDA, SCL
 
 // Permanently stored values
-RTC_DATA_ATTR char WIFI_SSID[60] = FALLBACK_WIFI_SSID;
-RTC_DATA_ATTR char WIFI_PASS[60] = FALLBACK_WIFI_PASS;
-RTC_DATA_ATTR char SERVER_IP[60] = FALLBACK_WIFI_PASS;
-RTC_DATA_ATTR char SEND_SERVER[60];
-RTC_DATA_ATTR char FETCH_SERVER[60];
+RTC_DATA_ATTR char WIFI_SSID[100] = FALLBACK_WIFI_SSID;
+RTC_DATA_ATTR char WIFI_PASS[100] = FALLBACK_WIFI_PASS;
+RTC_DATA_ATTR char SERVER_IP[100] = FALLBACK_WIFI_PASS;
+RTC_DATA_ATTR char SEND_SERVER[100];
+RTC_DATA_ATTR char FETCH_SERVER[100];
 
 // RTC_DATA_ATTR values dont get reset after deepsleep
 RTC_DATA_ATTR int noWifiCount = 0;
@@ -38,7 +37,7 @@ RTC_DATA_ATTR bool settingsLoaded = false;
 RTC_DATA_ATTR bool hasWIFI = false;
 RTC_DATA_ATTR bool hasServerError = false;
 
-// settings that might get fetched from server
+// settings that get fetched from server
 RTC_DATA_ATTR int SLEEPTIME_s = FALLBACK_SLEEPTIME_s;
 RTC_DATA_ATTR int NO_WIFI_MAX_RETRIES = FALLBACK_NO_WIFI_MAX_RETRIES;
 RTC_DATA_ATTR int DISPLAY_TIMEOUT_s = FALLBACK_DISPLAY_TIMEOUT_s;

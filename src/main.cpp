@@ -7,9 +7,8 @@
  * @brief   Sky Quality Meter that sends sensor values to an API endpoint
  ******************************************************************************
  */
-// Beispielprogramme für zb Pin ein aus, deepsleep,.. 
-//Debugger inbestrieb
-// Faktor wie oft hintereinander gut /schlecht auf webinterface
+// Beispielprogramme für zb Pin ein aus, deepsleep,..
+// Debugger inbestriebnahme
 #include <Arduino.h>
 #include <vector>
 #include "settings.h"
@@ -40,6 +39,7 @@
 
 using namespace std;
 vector<String> sensorErrors;
+RTC_DATA_ATTR vector<bool> lastSeeingChecks;
 
 // Replaces placeholder on website with Wifi info
 String wifi_info(const String &var)
@@ -74,7 +74,7 @@ void activate_access_point()
         if(p->isPost()){
           // HTTP POST ssid value
           if (p->name() == PARAM_INPUT_1) {
-            (p->value()).toCharArray(WIFI_SSID,60);
+            (p->value()).toCharArray(WIFI_SSID,100);
             // Write file to save value
             if(!writeLineOfFile(SPIFFS, ssidPath, WIFI_SSID))
             {
@@ -83,13 +83,13 @@ void activate_access_point()
           }
           // HTTP POST pass value
           if (p->name() == PARAM_INPUT_2) {
-            (p->value()).toCharArray(WIFI_PASS,60);
+            (p->value()).toCharArray(WIFI_PASS,100);
             // Write file to save value
             writeLineOfFile(SPIFFS, passPath, WIFI_PASS);
           }
           // HTTP POST ip value
           if (p->name() == PARAM_INPUT_3) {
-            (p->value()).toCharArray(SERVER_IP,60);
+            (p->value()).toCharArray(SERVER_IP,100);
             // Write file to save value
             writeLineOfFile(SPIFFS, ipPath, SERVER_IP);
           }
@@ -110,92 +110,8 @@ void activate_access_point()
   esp_deep_sleep(-77777777);
 }
 
-
-//check if sky quality was good for long enough
-void check_seeing_threshhold(){
-  // check if sensor values are good and if seeing should be enabled
-  // good sky state
-  if (check_seeing())
-  {
-    ++GOOD_SKY_STATE_COUNT;
-
-    //insert true at beginning of vector
-    lastSeeingChecks.insert(lastSeeingChecks.begin(), true);
-    //if lastSeeingChecks.size() > 5, pop last element
-    if (lastSeeingChecks.size() > 5)
-    {
-      lastSeeingChecks.pop_back();
-    }
-
-    //check if more than 2 good in last 5 checks
-    int goodcount = 0;
-    for (int i = 0; i < lastSeeingChecks.size(); i++)
-    {
-      if (lastSeeingChecks[i])
-      {
-        goodcount++;
-      }
-    }
-    //if >= 2 good in last 5 checks, reset BAD_SKY_STATE_COUNT
-    if (goodcount >= 2)
-    {
-      BAD_SKY_STATE_COUNT = 0;
-    }
-
-
-    //if good skystate for long enough, enable seeing
-    if (GOOD_SKY_STATE_COUNT >= seeing_thr)
-    {
-      // keep Seeing on in deepsleep
-      SEEING_ENABLED=true;
-      high_hold_Pin(EN_SEEING);
-    }
-  }
-  else
-  {
-    ++BAD_SKY_STATE_COUNT;
-
-    //insert false at beginning of vector
-    lastSeeingChecks.insert(lastSeeingChecks.begin(), false);
-    //if lastSeeingChecks.size() > 5, pop last element
-    if (lastSeeingChecks.size() > 5)
-    {
-      lastSeeingChecks.pop_back();
-    }
-
-    //check if more than 2 false in last 5 checks
-    int falsecount = 0;
-    for (int i = 0; i < lastSeeingChecks.size(); i++)
-    {
-      if (lastSeeingChecks[i])
-      {
-        falsecount++;
-      }
-    }
-    //if >= 2 false in last 5 checks, reset GoodSkyStateCount
-    if (falsecount >= 2)
-    {
-      GOOD_SKY_STATE_COUNT = 0;
-    }
-
-    
-    // shutdown SEEING if bad skystate
-    if (BAD_SKY_STATE_COUNT == seeing_thr)
-    {
-      UART_shutdown_Seeing();
-      SEEING_ENABLED=false;
-    }
-    // cut power for SEEING if bad skystate after 3rd time + buffertime
-    // to make shure RPi is shut down
-    if (BAD_SKY_STATE_COUNT == 3 + (int)(60 / SLEEPTIME_s))
-    {
-      digitalWrite(EN_SEEING, LOW);
-    }
-  }
-
-}
 // show current status on display
-void DisplayStatus()
+void DisplayStatusMessage()
 {
   if (DISPLAY_ON)
   {
@@ -355,14 +271,17 @@ bool post_data()
   HTTPClient http;
 
   std::stringstream data;
-  
-String errors="";
- for (int i = 0; i<sensorErrors.size();i++){
-    errors=errors+sensorErrors[i]+", ";
- }
+
+  String errors = "";
+  for (int i = 0; i < sensorErrors.size(); i++)
+  {
+    errors = errors + sensorErrors[i] + ", ";
+  }
   // create a json string
   String search;
-  search="{\"raining\":\""+String(raining)+"\",\"luminosity\":\"" + luminosity + "\",\"seeing\":\"" + seeing + "\",\"nelm\":\"" + nelm + "\",\"concentration\":\"" + concentration + "\",\"object\":\"" + object + "\",\"ambient\":\"" + ambient + "\",\"lux\":\"" + lux + "\",\"lightning_distanceToStorm\":\"" + lightning_distanceToStorm + "\",\"errors\":\"" + errors + "\",\"isSeeing\":\"" + SEEING_ENABLED + "\"}";
+  search = "{\"raining\":\"" + String(raining) + "\",\"luminosity\":\"" + luminosity + "\",\"seeing\":\"" + seeing + "\",\"nelm\":\"" + nelm +
+           "\",\"concentration\":\"" + concentration + "\",\"object\":\"" + object + "\",\"ambient\":\"" + ambient + "\",\"lux\":\"" + lux +
+           "\",\"lightning_distanceToStorm\":\"" + lightning_distanceToStorm + "\",\"errors\":\"" + errors + "\",\"isSeeing\":\"" + SEEING_ENABLED + "\"}";
   // Your Domain name with URL path or IP address with path
   http.begin(client, SEND_SERVER);
   // If you need an HTTP request with a content type: application/json, use the following:
@@ -412,6 +331,36 @@ void getcloudstate()
   }
 }
 
+// send over uart that planning on shutdown seeing
+bool UART_shutdown_Seeing()
+{
+  SerialPort.begin(9600, 134217756U, MYPORT_RX, MYPORT_TX, false);
+  SerialPort.println("shut");
+  String str = SerialPort.readString(); // read until timeout
+  str.trim();
+  if (str == "ok")
+  {
+    return true;
+    Serial.println(str);
+  }
+  return false;
+}
+
+// get Seeing value over UART
+bool UART_get_Seeing()
+{
+  SerialPort.begin(9600, 134217756U, MYPORT_RX, MYPORT_TX, false);
+  SerialPort.println("get");
+  String teststr = SerialPort.readString(); // read until timeout
+  teststr.trim();
+  if (teststr.isEmpty())
+  {
+    return false;
+  }
+  seeing = teststr;
+  return true;
+}
+
 // check skystate if ok for Seeing
 bool check_seeing()
 {
@@ -426,89 +375,142 @@ bool check_seeing()
   }
 }
 
-// send over uart that palanning on shutdown seeing
-bool UART_shutdown_Seeing()
+// check if sky quality was good for long enough
+void check_seeing_threshhold()
 {
-  SerialPort.begin(9600, 134217756U, MYPORT_RX, MYPORT_TX, false);
-  SerialPort.println("shut");
-  unsigned long startTime = millis();
-  while (SerialPort.available() == 0) // wait for 15s for data available
+  // check if sensor values are good and if seeing should be enabled
+  // good sky state
+  if (check_seeing())
   {
-    if ((millis() - startTime) > 15 * 1000)
+    ++GOOD_SKY_STATE_COUNT;
+
+    // insert true at beginning of vector
+    lastSeeingChecks.insert(lastSeeingChecks.begin(), true);
+    // if lastSeeingChecks.size() > 5, pop last element
+    if (lastSeeingChecks.size() > 5)
     {
-      return false;
+      lastSeeingChecks.pop_back();
+    }
+
+    // check if more than 2 good in last 5 checks
+    int goodcount = 0;
+    for (int i = 0; i < lastSeeingChecks.size(); i++)
+    {
+      if (lastSeeingChecks[i])
+      {
+        goodcount++;
+      }
+    }
+    // if >= 2 good in last 5 checks, reset BAD_SKY_STATE_COUNT
+    if (goodcount >= 2)
+    {
+      BAD_SKY_STATE_COUNT = 0;
+    }
+
+    // if good skystate for long enough, enable seeing
+    if (GOOD_SKY_STATE_COUNT >= seeing_thr)
+    {
+      // keep Seeing on in deepsleep
+      SEEING_ENABLED = true;
+      high_hold_Pin(EN_SEEING);
     }
   }
-  String str = SerialPort.readString(); // read until timeout
-  str.trim();
-  if (str == "ok")
+  else
   {
-    SerialPort.println("shutdown");
+    ++BAD_SKY_STATE_COUNT;
+
+    // insert false at beginning of vector
+    lastSeeingChecks.insert(lastSeeingChecks.begin(), false);
+    // if lastSeeingChecks.size() > 5, pop last element
+    if (lastSeeingChecks.size() > 5)
+    {
+      lastSeeingChecks.pop_back();
+    }
+
+    // check if more than 2 false in last 5 checks
+    int falsecount = 0;
+    for (int i = 0; i < lastSeeingChecks.size(); i++)
+    {
+      if (lastSeeingChecks[i])
+      {
+        falsecount++;
+      }
+    }
+    // if >= 2 false in last 5 checks, reset GoodSkyStateCount
+    if (falsecount >= 2)
+    {
+      GOOD_SKY_STATE_COUNT = 0;
+    }
+
+    // shutdown SEEING if bad skystate
+    if (BAD_SKY_STATE_COUNT == seeing_thr)
+    {
+      UART_shutdown_Seeing();
+      SEEING_ENABLED = false;
+    }
+    // cut power for SEEING if bad skystate after seeing_thr time + buffertime
+    // to make shure RPi is shut down
+    if (BAD_SKY_STATE_COUNT == seeing_thr + (int)(60 / SLEEPTIME_s))
+    {
+      digitalWrite(EN_SEEING, LOW);
+    }
+  }
+}
+
+bool getSavedWifiSettings()
+{
+  hasInitialized = true;
+  if (initSPIFFS())
+  {
+    // Load values saved in SPIFFS (if exists, else fallback to settings.h)
+    String temp;
+    if (SPIFFS.exists(ssidPath))
+    {
+      temp = readLineOfFile(SPIFFS, ssidPath);
+      temp.toCharArray(WIFI_SSID, 100);
+    }
+    if (SPIFFS.exists(passPath))
+    {
+      temp = readLineOfFile(SPIFFS, passPath);
+      temp.toCharArray(WIFI_PASS, 100);
+    }
+    if (SPIFFS.exists(ipPath))
+    {
+      temp = readLineOfFile(SPIFFS, ipPath);
+      temp.toCharArray(SERVER_IP, 100);
+    }
+
+    // Post sensor values - Domain name with URL path or IP address with path
+    ("http://" + String(SERVER_IP) + ":" + String(serverPort) + "/SQM").toCharArray(SEND_SERVER, 100);
+    // Get settings - Domain name with URL path or IP address with path
+    ("http://" + String(SERVER_IP) + ":" + String(serverPort) + "/getsettings").toCharArray(FETCH_SERVER, 100);
+    SPIFFS.end();
     return true;
   }
-  return false;
-}
-
-// get Seeing value over UART
-bool UART_get_Seeing()
-{
-  SerialPort.begin(9600, 134217756U, MYPORT_RX, MYPORT_TX, false);
-  SerialPort.println("get");
-  unsigned long startTime = millis();
-  while (Serial.available() == 0) // wait for 15s for data available
+  else
   {
-    if ((millis() - startTime) > 1 * 1000)
-    {
-      return false;
-    }
+    return false;
   }
-  String teststr = SerialPort.readString(); // read until timeout
-  teststr.trim();
-  seeing = teststr;
-  return true;
 }
-
-
 
 void setup()
 {
   Serial.begin(115200);
   if (DISPLAY_ON)
-    {
-      // keep display on in deepsleep
-      high_hold_Pin(EN_Display);
-    }
-  // enable display if set, and read network settings
+  {
+    // keep display on in deepsleep
+    high_hold_Pin(EN_Display);
+  }
+  // read network settings once
   if (!hasInitialized)
   {
-    if(initSPIFFS()){
-    // Load values saved in SPIFFS (if exists, else fallback to settings.h)
-    String temp;
-    if (SPIFFS.exists(ssidPath)){
-    temp=readLineOfFile(SPIFFS, ssidPath);
-    temp.toCharArray(WIFI_SSID,60);
-    }
-    if (SPIFFS.exists(passPath)){
-    temp=readLineOfFile(SPIFFS, passPath);
-    temp.toCharArray(WIFI_PASS,60);
-    }
-    if (SPIFFS.exists(ipPath)){
-    temp=readLineOfFile(SPIFFS, ipPath);
-    temp.toCharArray(SERVER_IP,60);
-    }
-    }
-    hasInitialized = true;
-    // Post sensor values - Domain name with URL path or IP address with path
-    ("http://" + String(SERVER_IP) + ":" + String(serverPort) + "/SQM").toCharArray(SEND_SERVER,60);
-    // Get settings - Domain name with URL path or IP address with path
-    ("http://" + String(SERVER_IP) + ":" + String(serverPort) + "/getsettings").toCharArray(FETCH_SERVER,60);
-    SPIFFS.end();
+    getSavedWifiSettings();
   }
 
   // Enable & Set WiFi to station mode
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
-  Serial.println("WIFI:"+String(WIFI_SSID));
+  Serial.println("WIFI:" + String(WIFI_SSID));
   WiFi.setTxPower(WIFI_POWER_19_5dBm);
   // init SQM sensor
   FreqCountESP.begin(SQMpin, 55);
@@ -567,10 +569,15 @@ void loop()
   read_particle(concentration);
   read_rain(raining);
 
+  if (SEEING_ENABLED)
+  {
+    UART_get_Seeing();
+  }
+
   // turn display off after set time
   if (DISPLAY_ON && hasWIFI && DISPLAY_TIMEOUT_s != 0 && (DISPLAY_TIMEOUT_s < ((sendCount * SLEEPTIME_s) + (noWifiCount * (NOWIFI_SLEEPTIME_s + 6)))))
   {
-    // disable sensor supply voltage
+    // disable display supply voltage
     DISPLAY_ON = false;
     digitalWrite(EN_Display, LOW);
   }
@@ -578,7 +585,7 @@ void loop()
   // send data if connected
   if (WiFi.status() == WL_CONNECTED)
   {
-    // fetch settings if not loaded yet and desired
+    // fetch settings if not loaded yet or desired
     if (!settingsLoaded || ALWAYS_FETCH_SETTINGS)
     {
       settingsLoaded = fetch_settings();
@@ -600,22 +607,15 @@ void loop()
     sleepTime = NOWIFI_SLEEPTIME_s;
     noWifiCount++;
     hasWIFI = false;
-    // sleep forever if max retries reached
-    if (noWifiCount >= NO_WIFI_MAX_RETRIES)
-    {
-      // open AP for changing WIFI settings
-      sleepForever = true;
-      DisplayStatus();
-      activate_access_point();
-    }
   }
 
-  // if too couldnt send data too many times - sleep forever
-  if (serverErrorCount > sendCount && serverErrorCount > NO_WIFI_MAX_RETRIES)
+  // sleep forever if max retries reached
+  if (noWifiCount >= NO_WIFI_MAX_RETRIES || serverErrorCount >= NO_WIFI_MAX_RETRIES)
   {
-    // sleep forever
-    sleepTime = -77777777;
+    // open AP for changing WIFI settings
     sleepForever = true;
+    DisplayStatusMessage();
+    activate_access_point();
   }
 
   // if couldnt send data - turn display on again and show error message
@@ -623,14 +623,13 @@ void loop()
   {
     // keep display on in deepsleep
     high_hold_Pin(EN_Display);
-    delay(10);
+    delay(5);
   }
 
-
   check_seeing_threshhold();
-  
-  DisplayStatus();
 
-  WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
+  DisplayStatusMessage();
+
+  WiFi.mode(WIFI_MODE_NULL);           // Switch WiFi off
   esp_deep_sleep(sleepTime * 1000000); // send ESP32 to deepsleep
 }
