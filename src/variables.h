@@ -51,7 +51,7 @@ RTC_DATA_ATTR double SP2 = FALLBACK_SP2;
 RTC_DATA_ATTR double MAX_LUX = FALLBACK_MAXLUX;
 
 // Sky state indicators
-RTC_DATA_ATTR int CLOUD_STATE = -1;
+RTC_DATA_ATTR int CLOUD_STATE = -333;
 RTC_DATA_ATTR int BAD_SKY_STATE_COUNT = 0;
 RTC_DATA_ATTR int GOOD_SKY_STATE_COUNT = 0;
 
@@ -62,13 +62,13 @@ RTC_DATA_ATTR int GOOD_SKY_STATE_COUNT = 0;
 
 // sensor values
 bool raining = false;
-float ambient, object = -1; //TQ, HT
-double lux = -1; // Resulting lux value
-int lightning_distanceToStorm = -1;
-float luminosity = -1; // the SQM value, sky magnitude
-String seeing = "-1"; 
-double nelm = -1; //NE
-int concentration = -1;
+float ambient, object = -333; //TQ, HT
+double lux = -333; // Resulting lux value
+int lightning_distanceToStorm = -333;
+float luminosity = -333; // the SQM value, sky magnitude
+String seeing = "-333"; 
+double nelm = -333; //NE
+int concentration = -333;
 
 // Search for parameter in HTTP POST request
 const char *PARAM_INPUT_1 = "ssid";

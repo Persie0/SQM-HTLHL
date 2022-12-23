@@ -519,23 +519,24 @@ void setup()
   digitalWrite(EN_3V3, HIGH);
   digitalWrite(EN_5V, HIGH);
 
-  delay(5);
+  delay(10);
 
   // initialise sensors, if sensor error add to array
   if (!init_MLX90614())
   {
     sensorErrors.push_back("init_MLX90614");
   }
-  delay(10);
+  delay(20);
   if (!init_TSL2561())
   {
     sensorErrors.push_back("init_TSL2561");
   }
-  delay(10);
+  delay(20);
   if (!init_AS3935())
   {
     sensorErrors.push_back("init_AS3935");
   }
+  delay(20);
   pinMode(rainS_DO, INPUT);
   pinMode(particle_pin, INPUT);
 }
@@ -547,17 +548,17 @@ void loop()
   {
     sensorErrors.push_back("read_MLX90614");
   }
-  delay(10);
+  delay(20);
   if (!read_TSL2561(lux))
   {
     sensorErrors.push_back("read_TSL2561");
   }
-  delay(10);
+  delay(20);
   if (!read_AS3935(lightning_distanceToStorm))
   {
     sensorErrors.push_back("read_AS3935");
   }
-  delay(10);
+  delay(20);
   if (!read_TSL237(luminosity, nelm, SQM_LIMIT))
   {
     sensorErrors.push_back("read_TSL237");
