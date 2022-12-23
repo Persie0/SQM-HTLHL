@@ -6,7 +6,7 @@
 HardwareSerial SerialPort(2); // use UART2
 
 String incomingString;
-int sleepTime = 0;
+int sleepTime = 5;
 bool sleepForever = false;
 
 // if it has no internet - Access Point, WIFI settings

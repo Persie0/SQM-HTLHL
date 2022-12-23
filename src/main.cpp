@@ -7,8 +7,8 @@
  * @brief   Sky Quality Meter that sends sensor values to an API endpoint
  ******************************************************************************
  */
-// Beispielprogramme für zb Pin ein aus, deepsleep,..
-// Debugger inbestriebnahme
+// Beispielprogramme für zb deepsleep verschiedene wake, webserver , wlan, interrupt extern. time, 
+// Debugger inbestriebnahme, breakpoints, variablen, watchpoints,
 #include <Arduino.h>
 #include <vector>
 #include "settings.h"
@@ -526,17 +526,17 @@ void setup()
   {
     sensorErrors.push_back("init_MLX90614");
   }
-  delay(20);
+  delay(50);
   if (!init_TSL2561())
   {
     sensorErrors.push_back("init_TSL2561");
   }
-  delay(20);
+  delay(50);
   if (!init_AS3935())
   {
     sensorErrors.push_back("init_AS3935");
   }
-  delay(20);
+  delay(50);
   pinMode(rainS_DO, INPUT);
   pinMode(particle_pin, INPUT);
 }
@@ -548,21 +548,22 @@ void loop()
   {
     sensorErrors.push_back("read_MLX90614");
   }
-  delay(20);
+  delay(50);
   if (!read_TSL2561(lux))
   {
     sensorErrors.push_back("read_TSL2561");
   }
-  delay(20);
+  delay(50);
   if (!read_AS3935(lightning_distanceToStorm))
   {
     sensorErrors.push_back("read_AS3935");
   }
-  delay(20);
+  delay(50);
   if (!read_TSL237(luminosity, nelm, SQM_LIMIT))
   {
     sensorErrors.push_back("read_TSL237");
   }
+  delay(50);
   // read the sensor values
   read_particle(concentration);
   read_rain(raining);
@@ -571,60 +572,62 @@ void loop()
   {
     UART_get_Seeing();
   }
-
-  // turn display off after set time
-  if (DISPLAY_ON && hasWIFI && DISPLAY_TIMEOUT_s != 0 && (DISPLAY_TIMEOUT_s < ((sendCount * SLEEPTIME_s) + (noWifiCount * (NOWIFI_SLEEPTIME_s + 6)))))
+  if (ESP_MODE == 1)
   {
-    // disable display supply voltage
-    DISPLAY_ON = false;
-    digitalWrite(EN_Display, LOW);
-  }
-
-  // send data if connected
-  if (WiFi.status() == WL_CONNECTED)
-  {
-    // fetch settings if not loaded yet or desired
-    if (!settingsLoaded)
+    // turn display off after set time
+    if (DISPLAY_ON && hasWIFI && DISPLAY_TIMEOUT_s != 0 && (DISPLAY_TIMEOUT_s < ((sendCount * SLEEPTIME_s) + (noWifiCount * (NOWIFI_SLEEPTIME_s + 6)))))
     {
-      settingsLoaded = fetch_settings();
+      // disable display supply voltage
+      DISPLAY_ON = false;
+      digitalWrite(EN_Display, LOW);
     }
-    hasServerError = !post_data();
-    if (hasServerError)
+
+    // send data if connected
+    if (WiFi.status() == WL_CONNECTED)
     {
-      serverErrorCount++;
+      // fetch settings if not loaded yet or desired
+      if (!settingsLoaded)
+      {
+        settingsLoaded = fetch_settings();
+      }
+      hasServerError = !post_data();
+      if (hasServerError)
+      {
+        serverErrorCount++;
+      }
+      hasWIFI = true;
+      sendCount++;
+      // set custom sleep time
+      sleepTime = SLEEPTIME_s;
     }
-    hasWIFI = true;
-    sendCount++;
-    // set custom sleep time
-    sleepTime = SLEEPTIME_s;
-  }
 
-  // else wait for connection
-  else
-  {
-    sleepTime = NOWIFI_SLEEPTIME_s;
-    noWifiCount++;
-    hasWIFI = false;
-  }
+    // else wait for connection
+    else
+    {
+      sleepTime = NOWIFI_SLEEPTIME_s;
+      noWifiCount++;
+      hasWIFI = false;
+    }
 
-  // sleep forever if max retries reached
-  if (noWifiCount >= NO_WIFI_MAX_RETRIES || serverErrorCount >= NO_WIFI_MAX_RETRIES)
-  {
-    // open AP for changing WIFI settings
-    sleepForever = true;
-    DisplayStatusMessage();
-    activate_access_point();
-  }
+    // sleep forever if max retries reached
+    if (noWifiCount >= NO_WIFI_MAX_RETRIES || serverErrorCount >= NO_WIFI_MAX_RETRIES)
+    {
+      // open AP for changing WIFI settings
+      sleepForever = true;
+      DisplayStatusMessage();
+      activate_access_point();
+    }
 
-  // if couldnt send data - turn display on again and show error message
-  if ((!hasWIFI || hasServerError) && !DISPLAY_ON)
-  {
-    // keep display on in deepsleep
-    high_hold_Pin(EN_Display);
-    delay(5);
-  }
+    // if couldnt send data - turn display on again and show error message
+    if ((!hasWIFI || hasServerError) && !DISPLAY_ON)
+    {
+      // keep display on in deepsleep
+      high_hold_Pin(EN_Display);
+      delay(5);
+    }
 
-  check_seeing_threshhold();
+    check_seeing_threshhold();
+  }
 
   DisplayStatusMessage();
 

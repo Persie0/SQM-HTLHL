@@ -7,6 +7,7 @@ bool read_TSL237(float &mySQMreading, double &nelm, double SQM_LIMIT)
   if (FreqCountESP.available())
   {
     frequency = FreqCountESP.read();
+    Serial.println("Frequency: " + String(frequency));
     if (frequency < 1)
     {
       frequency = 1;

@@ -50,7 +50,7 @@
 #define FORMAT_SPIFFS_IF_FAILED false
 
 // Display
-#define ESP_MODE 1                     // 0-Offline (just display sensor values), 1-Online (normal), 2-Test (testing sensors, showing errors on display)
+#define ESP_MODE 0                     // 0-Offline (just display sensor values), 1-Online (normal), 2-Test (testing sensors, showing errors on display)
 #define FALLBACK_DISPLAY_TIMEOUT_s 200 /* Time Display will be on after start */
 #define FALLBACK_DISPLAY_ON true       /* display on after start */
 
@@ -68,7 +68,7 @@
 //                 LIGHTNING SENSOR SETTINGS
 // ===========================================================
 
-#define AS3935_ADDR 0x00
+#define AS3935_ADDR 0x03
 // I2C Address
 //  0x03 is default, but the address can also be 0x02, or 0x01.
 //  Adjust the address jumpers on the underside of the product.
@@ -111,7 +111,7 @@
 // If gain = false (0), device is set to low gain (1X)
 // If gain = high (1), device is set to high gain (16X)
 
-#define shuttertime 0
+#define shuttertime 1
 // Integration ("shutter") time in milliseconds
 // If time = 0, integration will be 13.7ms
 // If time = 1, integration will be 101ms
