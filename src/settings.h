@@ -50,7 +50,7 @@
 #define FORMAT_SPIFFS_IF_FAILED false
 
 // Display
-#define ESP_MODE 0                     // 0-Offline (just display sensor values), 1-Online (normal), 2-Test (testing sensors, showing errors on display)
+#define ESP_MODE 1                     // 0-Offline (just display sensor values), 1-Online (normal), 2-Test (testing sensors, showing errors on display)
 #define FALLBACK_DISPLAY_TIMEOUT_s 200 /* Time Display will be on after start */
 #define FALLBACK_DISPLAY_ON true       /* display on after start */
 

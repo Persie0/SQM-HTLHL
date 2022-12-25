@@ -123,7 +123,9 @@ void DisplayStatusMessage()
       if (sleepForever)
       {
         display.drawStringMaxWidth(0, 0, 128, "WIFI AP / Dead");
+        delay(3);
         display.drawStringMaxWidth(0, 12, 128, "no WIFI, server error");
+        delay(3);
         display.drawStringMaxWidth(0, 24, 128, "or server not reachable");
       }
       else
@@ -135,7 +137,7 @@ void DisplayStatusMessage()
         else
         {
           display.drawStringMaxWidth(0, 0, 128, "NO Wifi");
-        }
+        }delay(3);
         if (hasWIFI)
         {
           display.drawStringMaxWidth(0, 12, 128, "send count: " + String(sendCount));
@@ -143,7 +145,7 @@ void DisplayStatusMessage()
         else
         {
           display.drawStringMaxWidth(0, 12, 128, "retry count: " + String(noWifiCount));
-        }
+        }delay(3);
         if (settingsLoaded)
         {
           display.drawStringMaxWidth(0, 24, 128, "settings loaded");
@@ -151,7 +153,7 @@ void DisplayStatusMessage()
         else
         {
           display.drawStringMaxWidth(0, 24, 128, "settings NOT loaded");
-        }
+        }delay(3);
         if (hasWIFI)
         {
           if (hasServerError)
@@ -197,6 +199,16 @@ void high_hold_Pin(gpio_num_t pin)
   // keep display on in deepsleep
   pinMode(pin, OUTPUT);
   digitalWrite(pin, HIGH);
+  gpio_hold_en(pin);
+  gpio_deep_sleep_hold_en();
+}
+
+// set a Pin as output and keep it high also in deepsleep
+void low_hold_Pin(gpio_num_t pin)
+{
+  // keep display on in deepsleep
+  pinMode(pin, OUTPUT);
+  digitalWrite(pin, LOW);
   gpio_hold_en(pin);
   gpio_deep_sleep_hold_en();
 }
@@ -408,7 +420,7 @@ void check_seeing_threshhold()
     {
       // keep Seeing on in deepsleep
       SEEING_ENABLED = true;
-      high_hold_Pin(EN_SEEING);
+     low_hold_Pin(EN_SEEING);
     }
   }
   else
@@ -448,7 +460,7 @@ void check_seeing_threshhold()
     // to make shure RPi is shut down
     if (BAD_SKY_STATE_COUNT == seeing_thr + (int)(60 / SLEEPTIME_s))
     {
-      digitalWrite(EN_SEEING, LOW);
+      high_hold_Pin(EN_SEEING);
     }
   }
 }
@@ -491,6 +503,17 @@ bool getSavedWifiSettings()
 
 void setup()
 {
+  if(!SEEING_ENABLED)
+  {
+    // keep seeing off
+    high_hold_Pin(EN_SEEING);
+  }
+  else
+  {
+    // keep seeing on
+    low_hold_Pin(EN_SEEING);
+  }
+
   if (DISPLAY_ON)
   {
     // keep display on in deepsleep
@@ -563,7 +586,7 @@ void loop()
   {
     sensorErrors.push_back("read_TSL237");
   }
-  delay(50);
+  delay(108);
   // read the sensor values
   read_particle(concentration);
   read_rain(raining);
