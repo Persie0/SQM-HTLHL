@@ -7,7 +7,7 @@
  * @brief   Sky Quality Meter that sends sensor values to an API endpoint
  ******************************************************************************
  */
-// Beispielprogramme für zb deepsleep verschiedene wake, webserver , wlan, interrupt extern. time, 
+
 // Debugger inbestriebnahme, breakpoints, variablen, watchpoints,
 #include <Arduino.h>
 #include <vector>
@@ -193,7 +193,7 @@ void DisplayStatusMessage()
   }
 }
 
-// set a Pin as output and keep it high also in deepsleep
+// set a Pin as output and keep it high in deepsleep
 void high_hold_Pin(gpio_num_t pin)
 {
   // keep display on in deepsleep
@@ -203,7 +203,7 @@ void high_hold_Pin(gpio_num_t pin)
   gpio_deep_sleep_hold_en();
 }
 
-// set a Pin as output and keep it high also in deepsleep
+// set a Pin as output and keep it high in deepsleep
 void low_hold_Pin(gpio_num_t pin)
 {
   // keep display on in deepsleep
@@ -657,3 +657,4 @@ void loop()
   WiFi.mode(WIFI_MODE_NULL);           // Switch WiFi off
   esp_deep_sleep(sleepTime * 1000000); // send ESP32 to deepsleep
 }
+
