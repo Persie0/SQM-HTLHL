@@ -31,9 +31,9 @@
 #define SQMpin 25        // TSL237 OUT to digital pin 25
 #define rainS_DO 18      // the rain sensor digital port pin, raining=yes/no
 
-#define EN_3V3 2              // power-control pin to enable the 3,3V for the sensors
-#define EN_5V 15              // power-control pin to enable the 5V for the sensors
-#define EN_SEEING GPIO_NUM_16 // power-control pin to enable Seeing
+#define EN_3V3 15              // power-control pin to enable the 3,3V for the sensors
+#define EN_5V 2              // power-control pin to enable the 5V for the sensors
+#define EN_SEEING GPIO_NUM_14 // power-control pin to enable Seeing
 
 #define EN_Display GPIO_NUM_4 // power-control pin to enable the display
 
@@ -68,7 +68,8 @@
 //                 LIGHTNING SENSOR SETTINGS
 // ===========================================================
 
-#define AS3935_ADDR 0x03
+#define AS3935_ADDR 0x00
+//was AS3935_ADDR 0x00
 // I2C Address
 //  0x03 is default, but the address can also be 0x02, or 0x01.
 //  Adjust the address jumpers on the underside of the product.

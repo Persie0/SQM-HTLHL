@@ -101,13 +101,16 @@ void activate_access_point()
       ESP.restart(); });
   // start server (website)
   server.begin();
-  unsigned long startTime = millis();
-  while ((millis() - startTime) < 1200 * 1000) // run for 20min
+  unsigned long stTime = millis();
+  // turn sensors off
+  digitalWrite(EN_3V3, LOW);
+  digitalWrite(EN_5V, LOW);
+  while ((millis() - stTime) < 1200 * 1000) // run for 20min
   {
     delay(100);
   }
   // if no changes - sleep forever
-  esp_deep_sleep(-77777777);
+  esp_deep_sleep(77777777);
 }
 
 // show current status on display
@@ -116,6 +119,8 @@ void DisplayStatusMessage()
   if (DISPLAY_ON)
   {
     display.init();
+    delay(3);
+    display.clear();
     display.setFont(ArialMT_Plain_10);
     display.setTextAlignment(TEXT_ALIGN_LEFT);
     if (ESP_MODE == 1)
@@ -503,6 +508,11 @@ bool getSavedWifiSettings()
 
 void setup()
 {
+    if (DISPLAY_ON)
+  {
+    // keep display on in deepsleep
+    high_hold_Pin(EN_Display);
+  }
   if(!SEEING_ENABLED)
   {
     // keep seeing off
@@ -514,11 +524,6 @@ void setup()
     low_hold_Pin(EN_SEEING);
   }
 
-  if (DISPLAY_ON)
-  {
-    // keep display on in deepsleep
-    high_hold_Pin(EN_Display);
-  }
   Serial.begin(115200);
 
   // read network settings once
@@ -532,8 +537,7 @@ void setup()
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   Serial.println("WIFI:" + String(WIFI_SSID));
   WiFi.setTxPower(WIFI_POWER_19_5dBm);
-  // init SQM sensor
-  FreqCountESP.begin(SQMpin, 55);
+
   Wire.begin(); // I2C bus begin, so can talk to display
 
   // enable the 5V/3,3V supply voltage for the sensors
@@ -542,7 +546,10 @@ void setup()
   digitalWrite(EN_3V3, HIGH);
   digitalWrite(EN_5V, HIGH);
 
-  delay(10);
+  delay(5);
+  // init SQM sensor
+  FreqCountESP.begin(SQMpin, 100);
+
 
   // initialise sensors, if sensor error add to array
   if (!init_MLX90614())
@@ -559,7 +566,7 @@ void setup()
   {
     sensorErrors.push_back("init_AS3935");
   }
-  delay(50);
+  delay(10);
   pinMode(rainS_DO, INPUT);
   pinMode(particle_pin, INPUT);
 }
@@ -586,7 +593,6 @@ void loop()
   {
     sensorErrors.push_back("read_TSL237");
   }
-  delay(108);
   // read the sensor values
   read_particle(concentration);
   read_rain(raining);
@@ -644,6 +650,7 @@ void loop()
     // if couldnt send data - turn display on again and show error message
     if ((!hasWIFI || hasServerError) && !DISPLAY_ON)
     {
+      DISPLAY_ON = true;
       // keep display on in deepsleep
       high_hold_Pin(EN_Display);
       delay(5);

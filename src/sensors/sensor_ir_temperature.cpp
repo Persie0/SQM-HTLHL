@@ -5,7 +5,8 @@ IRTherm therm; // Create an IRTherm object to interact with throughout
 
 bool init_MLX90614()
 {
-    if (therm.begin(0x5A) == false)
+    
+    if (therm.begin() == false)
     { // Initialize thermal IR sensor
     return false;
     }

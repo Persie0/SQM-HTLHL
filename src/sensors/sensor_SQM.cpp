@@ -3,11 +3,15 @@
 
 bool read_TSL237(float &mySQMreading, double &nelm, double SQM_LIMIT)
 {
-  uint32_t frequency = 1; // measured TSL237 frequency which is dependent on light
+  uint32_t frequency = -333; // measured TSL237 frequency which is dependent on light
   if (FreqCountESP.available())
   {
     frequency = FreqCountESP.read();
     Serial.println("Frequency: " + String(frequency));
+    if(frequency <= 0)
+    {
+      return false;
+    }
     if (frequency < 1)
     {
       frequency = 1;

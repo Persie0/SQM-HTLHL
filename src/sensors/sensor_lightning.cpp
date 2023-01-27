@@ -23,7 +23,6 @@ bool init_AS3935()
     
     return false;
   }
-  else
     
   // "Disturbers" are events that are false lightning events. If you find
   // yourself seeing a lot of disturbers you can have the chip not report those
