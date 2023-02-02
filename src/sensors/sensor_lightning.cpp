@@ -13,12 +13,12 @@ SparkFun_AS3935 lightning(AS3935_ADDR);
 byte intVal = 0;
 
 
-bool init_AS3935()
+bool init_AS3935(TwoWire &wirePort )
 {
   // When lightning is detected the interrupt pin goes HIGH.
   pinMode(lightning_pin, INPUT);
 
-  if (!lightning.begin())
+  if (!lightning.begin(wirePort))
   { // Initialize the sensor.
     
     return false;

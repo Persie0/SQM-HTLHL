@@ -41,6 +41,9 @@ using namespace std;
 vector<String> sensorErrors;
 RTC_DATA_ATTR vector<bool> lastSeeingChecks;
 
+#define SDA_2 33
+#define SCL_2 32
+
 // Replaces placeholder on website with Wifi info
 String wifi_info(const String &var)
 {
@@ -518,6 +521,9 @@ low_hold_Pin(EN_SEEING);
 // Start the serial communication with a baud rate of 115200
 Serial.begin(115200);
 
+// Start the I2C communication for the lightning sensor
+Wire1.begin(SDA_2, SCL_2);
+
 // Load the saved network settings
 if (!hasInitialized) {
 getSavedWifiSettings();
@@ -551,7 +557,7 @@ if (!init_TSL2561()) {
 sensorErrors.push_back("init_TSL2561");
 }
 delay(50);
-if (!init_AS3935()) {
+if (!init_AS3935(&Wire1)) {
 sensorErrors.push_back("init_AS3935");
 }
 delay(10);
