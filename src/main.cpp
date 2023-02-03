@@ -41,8 +41,8 @@ using namespace std;
 vector<String> sensorErrors;
 RTC_DATA_ATTR vector<bool> lastSeeingChecks;
 
-#define SDA_2 33
-#define SCL_2 32
+#define SDA_2 17
+#define SCL_2 5
 
 // Replaces placeholder on website with Wifi info
 String wifi_info(const String &var)
@@ -133,7 +133,8 @@ void activate_access_point()
 // Display the current status message on the display
 void DisplayStatusMessage()
 {
-  if (!DISPLAY_ON) {
+  if (!DISPLAY_ON)
+  {
     return;
   }
 
@@ -146,46 +147,57 @@ void DisplayStatusMessage()
   display.setTextAlignment(TEXT_ALIGN_LEFT);
 
   // Display status based on ESP_MODE
-  switch (ESP_MODE) {
-    case 1:
-      if (sleepForever) {
-        display.drawStringMaxWidth(0, 0, 128, "WIFI AP / Dead");
-        display.drawStringMaxWidth(0, 12, 128, "no WIFI, server error");
-        display.drawStringMaxWidth(0, 24, 128, "or server not reachable");
-      } else {
-        // WIFI status
-        if (hasWIFI) {
-          display.drawStringMaxWidth(0, 0, 128, "Connected to Wifi");
-          display.drawStringMaxWidth(0, 12, 128, "send count: " + String(sendCount));
-        } else {
-          display.drawStringMaxWidth(0, 0, 128, "NO Wifi");
-          display.drawStringMaxWidth(0, 12, 128, "retry count: " + String(noWifiCount));
-        }
-        // Settings status
-        display.drawStringMaxWidth(0, 24, 128, settingsLoaded ? "settings loaded" : "settings NOT loaded");
+  switch (ESP_MODE)
+  {
+  case 1:
+    if (sleepForever)
+    {
+      display.drawStringMaxWidth(0, 0, 128, "WIFI AP / Dead");
+      display.drawStringMaxWidth(0, 12, 128, "no WIFI, server error");
+      display.drawStringMaxWidth(0, 24, 128, "or server not reachable");
+    }
+    else
+    {
+      // WIFI status
+      if (hasWIFI)
+      {
+        display.drawStringMaxWidth(0, 0, 128, "Connected to Wifi");
+        display.drawStringMaxWidth(0, 12, 128, "send count: " + String(sendCount));
+      }
+      else
+      {
+        display.drawStringMaxWidth(0, 0, 128, "NO Wifi");
+        display.drawStringMaxWidth(0, 12, 128, "retry count: " + String(noWifiCount));
+      }
+      // Settings status
+      display.drawStringMaxWidth(0, 24, 128, settingsLoaded ? "settings loaded" : "settings NOT loaded");
 
-        // Server status
-        display.drawStringMaxWidth(0, 36, 128, hasServerError ? "server error!" : "server is running");
+      // Server status
+      display.drawStringMaxWidth(0, 36, 128, hasServerError ? "server error!" : "server is running");
+    }
+    break;
+  case 0:
+    // Display environmental data
+    display.drawStringMaxWidth(0, 0, 128, "SQM: " + String(luminosity));
+    display.drawStringMaxWidth(0, 12, 128, "Airp.: " + String(concentration));
+    display.drawStringMaxWidth(0, 24, 128, "Lux: " + String(lux));
+    display.drawStringMaxWidth(0, 36, 128, "Raining: " + String(raining));
+    display.drawStringMaxWidth(0, 48, 128, "A&O: " + String(ambient) + "; " + String(object) + " °C");
+    break;
+  default:
+    // Display sensor errors, if any
+    if (sensorErrors.size() != 0)
+    {
+      for (int i = 0; i < sensorErrors.size(); i++)
+      {
+        display.drawStringMaxWidth(0, 12 * i, 128, sensorErrors[i]);
       }
-      break;
-    case 0:
-      // Display environmental data
-      display.drawStringMaxWidth(0, 0, 128, "SQM: " + String(luminosity));
-      display.drawStringMaxWidth(0, 12, 128, "Airp.: " + String(concentration));
-      display.drawStringMaxWidth(0, 24, 128, "Lux: " + String(lux));
-      display.drawStringMaxWidth(0, 36, 128, "Raining: " + String(raining));
-      display.drawStringMaxWidth(0, 48, 128, "A&O: " + String(ambient) + "; " + String(object) + " °C");
-      break;
-    default:
-      // Display sensor errors, if any
-      if (sensorErrors.size() != 0) {
-        for (int i = 0; i < sensorErrors.size(); i++) {
-          display.drawStringMaxWidth(0, 12 * i, 128, sensorErrors[i]);
-        }
-      } else {
-        display.drawStringMaxWidth(0, 0, 128, "No errors :)");
-      }
-      break;
+    }
+    else
+    {
+      display.drawStringMaxWidth(0, 0, 128, "No errors :)");
+    }
+    break;
   }
 
   display.display();
@@ -194,52 +206,53 @@ void DisplayStatusMessage()
 // Function to configure and hold a specified pin in high state during deep sleep
 void high_hold_Pin(gpio_num_t pin)
 {
-// Set the specified pin as output
-pinMode(pin, OUTPUT);
-// Write high state to the pin
-digitalWrite(pin, HIGH);
-// Enable holding the pin high state during deep sleep
-gpio_hold_en(pin);
-// Enable holding GPIO states during deep sleep
-gpio_deep_sleep_hold_en();
+  // Set the specified pin as output
+  pinMode(pin, OUTPUT);
+  // Write high state to the pin
+  digitalWrite(pin, HIGH);
+  // Enable holding the pin high state during deep sleep
+  gpio_hold_en(pin);
+  // Enable holding GPIO states during deep sleep
+  gpio_deep_sleep_hold_en();
 }
 
 // Set a pin as output and keep it low during deep sleep
-void low_hold_Pin(gpio_num_t pin) {
-// Set pin as output
-pinMode(pin, OUTPUT);
+void low_hold_Pin(gpio_num_t pin)
+{
+  // Set pin as output
+  pinMode(pin, OUTPUT);
 
-// Set the pin to LOW
-digitalWrite(pin, LOW);
+  // Set the pin to LOW
+  digitalWrite(pin, LOW);
 
-// Enable pin retention during deep sleep
-gpio_hold_en(pin);
-gpio_deep_sleep_hold_en();
+  // Enable pin retention during deep sleep
+  gpio_hold_en(pin);
+  gpio_deep_sleep_hold_en();
 }
 
 // Function to fetch settings from a server
 bool fetch_settings()
 {
-// Create client object for communication
-WiFiClient client;
+  // Create client object for communication
+  WiFiClient client;
 
-// Create HTTP client object
-HTTPClient http;
+  // Create HTTP client object
+  HTTPClient http;
 
-// Send request to the server
-http.useHTTP10(true);
-http.begin(client, FETCH_SERVER);
-int httpResponseCode = http.GET();
+  // Send request to the server
+  http.useHTTP10(true);
+  http.begin(client, FETCH_SERVER);
+  int httpResponseCode = http.GET();
 
-// Check if the request was successful
-if (httpResponseCode == 200)
-{
-// Parse the JSON response from the server
-DynamicJsonDocument doc(2048);
-deserializeJson(doc, http.getStream());
-// Read values from the JSON document
-// The code checks if the key exists before trying to read its value
-// This ensures that the code does not crash if the key is not present in the JSON document
+  // Check if the request was successful
+  if (httpResponseCode == 200)
+  {
+    // Parse the JSON response from the server
+    DynamicJsonDocument doc(2048);
+    deserializeJson(doc, http.getStream());
+    // Read values from the JSON document
+    // The code checks if the key exists before trying to read its value
+    // This ensures that the code does not crash if the key is not present in the JSON document
 
     // Read values
     if (doc.containsKey("seeing_thr"))
@@ -300,18 +313,18 @@ bool post_data()
   }
   // create a json string
   String search = "{\"raining\":\"" + String(raining) + "\",\"luminosity\":\"" + luminosity + "\",\"seeing\":\"" + seeing + "\",\"nelm\":\"" + nelm +
-           "\",\"concentration\":\"" + concentration + "\",\"object\":\"" + object + "\",\"ambient\":\"" + ambient + "\",\"lux\":\"" + lux +
-           "\",\"lightning_distanceToStorm\":\"" + lightning_distanceToStorm + "\",\"errors\":\"" + errors + "\",\"isSeeing\":\"" + SEEING_ENABLED + "\"}";
-// Start the HTTP connection
-http.begin(client, SEND_SERVER);
-http.addHeader("Content-Type", "application/json");
+                  "\",\"concentration\":\"" + concentration + "\",\"object\":\"" + object + "\",\"ambient\":\"" + ambient + "\",\"lux\":\"" + lux +
+                  "\",\"lightning_distanceToStorm\":\"" + lightning_distanceToStorm + "\",\"errors\":\"" + errors + "\",\"isSeeing\":\"" + SEEING_ENABLED + "\"}";
+  // Start the HTTP connection
+  http.begin(client, SEND_SERVER);
+  http.addHeader("Content-Type", "application/json");
 
-// Send the JSON string as the HTTP body
-int httpResponseCode = http.POST(search);
-http.end(); // End the connection
+  // Send the JSON string as the HTTP body
+  int httpResponseCode = http.POST(search);
+  http.end(); // End the connection
 
-// Return true if the post request is successful
-return httpResponseCode == 200;
+  // Return true if the post request is successful
+  return httpResponseCode == 200;
 }
 
 // calculate if cloudy/clear sky
@@ -347,18 +360,19 @@ void getcloudstate()
 }
 
 // Send the "shut" command over UART to indicate planning to shut down the seeing
-bool UART_shutdown_Seeing() {
-SerialPort.begin(9600, 134217756U, MYPORT_RX, MYPORT_TX, false); // initialize the serial port with a baud rate of 9600
+bool UART_shutdown_Seeing()
+{
+  SerialPort.begin(9600, 134217756U, MYPORT_RX, MYPORT_TX, false); // initialize the serial port with a baud rate of 9600
 
-// Send the "shut" command
-SerialPort.println("shut");
+  // Send the "shut" command
+  SerialPort.println("shut");
 
-// Read the response from the device and store it in a string variable
-String response = SerialPort.readString();
-response.trim();
+  // Read the response from the device and store it in a string variable
+  String response = SerialPort.readString();
+  response.trim();
 
-// Check if the response is "ok"
-return response == "ok";
+  // Check if the response is "ok"
+  return response == "ok";
 }
 
 // get Seeing value over UART
@@ -467,104 +481,111 @@ void check_seeing_threshhold()
 
 bool getSavedWifiSettings()
 {
-if (!initSPIFFS())
+  if (!initSPIFFS())
+  {
+    return false;
+  }
+
+  // Load values saved in SPIFFS (if exists, else fallback to settings.h)
+  String temp;
+  // Load SSID
+  if (SPIFFS.exists(ssidPath))
+  {
+    temp = readLineOfFile(SPIFFS, ssidPath);
+    temp.toCharArray(WIFI_SSID, 100);
+  }
+  // Load password
+  if (SPIFFS.exists(passPath))
+  {
+    temp = readLineOfFile(SPIFFS, passPath);
+    temp.toCharArray(WIFI_PASS, 100);
+  }
+  // Load IP address
+  if (SPIFFS.exists(ipPath))
+  {
+    temp = readLineOfFile(SPIFFS, ipPath);
+    temp.toCharArray(SERVER_IP, 100);
+  }
+
+  // Construct URLs for posting sensor values and fetching settings
+  ("http://" + String(SERVER_IP) + ":" + String(serverPort) + "/SQM").toCharArray(SEND_SERVER, 100);
+  ("http://" + String(SERVER_IP) + ":" + String(serverPort) + "/getsettings").toCharArray(FETCH_SERVER, 100);
+
+  SPIFFS.end();
+  return true;
+}
+
+void setup()
 {
-return false;
-}
+  // Configure the display on or off based on DISPLAY_ON
+  if (DISPLAY_ON)
+  {
+    // Keep the display on during deep sleep
+    high_hold_Pin(EN_Display);
+  }
 
-// Load values saved in SPIFFS (if exists, else fallback to settings.h)
-String temp;
-// Load SSID
-if (SPIFFS.exists(ssidPath))
-{
-temp = readLineOfFile(SPIFFS, ssidPath);
-temp.toCharArray(WIFI_SSID, 100);
-}
-// Load password
-if (SPIFFS.exists(passPath))
-{
-temp = readLineOfFile(SPIFFS, passPath);
-temp.toCharArray(WIFI_PASS, 100);
-}
-// Load IP address
-if (SPIFFS.exists(ipPath))
-{
-temp = readLineOfFile(SPIFFS, ipPath);
-temp.toCharArray(SERVER_IP, 100);
-}
+  // Configure the seeing sensor on or off based on SEEING_ENABLED
+  if (!SEEING_ENABLED)
+  {
+    // Keep the seeing sensor off
+    high_hold_Pin(EN_SEEING);
+  }
+  else
+  {
+    // Keep the seeing sensor on
+    low_hold_Pin(EN_SEEING);
+  }
 
-// Construct URLs for posting sensor values and fetching settings
-("http://" + String(SERVER_IP) + ":" + String(serverPort) + "/SQM").toCharArray(SEND_SERVER, 100);
-("http://" + String(SERVER_IP) + ":" + String(serverPort) + "/getsettings").toCharArray(FETCH_SERVER, 100);
+  // Start the serial communication with a baud rate of 115200
+  Serial.begin(115200);
 
-SPIFFS.end();
-return true;
-}
+  // Start the I2C communication for the lightning sensor
+  Wire1.begin(SDA_2, SCL_2, 100000U);
+  // Start the I2C communication for the other sensors
+  Wire.begin(21, 22, 10000U);
 
+  // Load the saved network settings
+  if (!hasInitialized)
+  {
+    getSavedWifiSettings();
+    hasInitialized = true;
+  }
 
-void setup() {
-// Configure the display on or off based on DISPLAY_ON
-if (DISPLAY_ON) {
-// Keep the display on during deep sleep
-high_hold_Pin(EN_Display);
-}
+  // Enable and set the WiFi to station mode
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  Serial.println("WIFI:" + String(WIFI_SSID));
+  WiFi.setTxPower(WIFI_POWER_19_5dBm);
 
-// Configure the seeing sensor on or off based on SEEING_ENABLED
-if (!SEEING_ENABLED) {
-// Keep the seeing sensor off
-high_hold_Pin(EN_SEEING);
-} else {
-// Keep the seeing sensor on
-low_hold_Pin(EN_SEEING);
-}
+  // Enable the supply voltage for the sensors
+  pinMode(EN_3V3, OUTPUT);
+  pinMode(EN_5V, OUTPUT);
+  digitalWrite(EN_3V3, HIGH);
+  digitalWrite(EN_5V, HIGH);
 
-// Start the serial communication with a baud rate of 115200
-Serial.begin(115200);
+  // Initialize the SQM sensor
+  FreqCountESP.begin(SQMpin, 100);
 
-// Start the I2C communication for the lightning sensor
-Wire1.begin(SDA_2, SCL_2);
+  // Initialize the sensors
+  if (!init_MLX90614())
+  {
+    sensorErrors.push_back("init_MLX90614");
+  }
+  delay(50);
+  if (!init_TSL2561())
+  {
+    sensorErrors.push_back("init_TSL2561");
+  }
+  delay(50);
+  if (!init_AS3935(Wire1))
+  {
+    sensorErrors.push_back("init_AS3935");
+  }
+  delay(10);
 
-// Load the saved network settings
-if (!hasInitialized) {
-getSavedWifiSettings();
-hasInitialized = true;
-}
-
-// Enable and set the WiFi to station mode
-WiFi.mode(WIFI_STA);
-WiFi.begin(WIFI_SSID, WIFI_PASS);
-Serial.println("WIFI:" + String(WIFI_SSID));
-WiFi.setTxPower(WIFI_POWER_19_5dBm);
-
-// Start the I2C communication
-Wire.begin();
-
-// Enable the supply voltage for the sensors
-pinMode(EN_3V3, OUTPUT);
-pinMode(EN_5V, OUTPUT);
-digitalWrite(EN_3V3, HIGH);
-digitalWrite(EN_5V, HIGH);
-
-// Initialize the SQM sensor
-FreqCountESP.begin(SQMpin, 100);
-
-// Initialize the sensors
-if (!init_MLX90614()) {
-sensorErrors.push_back("init_MLX90614");
-}
-delay(50);
-if (!init_TSL2561()) {
-sensorErrors.push_back("init_TSL2561");
-}
-delay(50);
-if (!init_AS3935(&Wire1)) {
-sensorErrors.push_back("init_AS3935");
-}
-delay(10);
-
-// Set the pins for rain and particle sensors as input
-pinMode(rainS_DO, INPUT);
-pinMode(particle_pin, INPUT);
+  // Set the pins for rain and particle sensors as input
+  pinMode(rainS_DO, INPUT);
+  pinMode(particle_pin, INPUT);
 }
 
 void loop()
