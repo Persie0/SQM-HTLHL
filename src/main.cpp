@@ -571,17 +571,16 @@ void setup()
   {
     sensorErrors.push_back("init_MLX90614");
   }
-  delay(50);
+  delay(10);
   if (!init_TSL2561())
   {
     sensorErrors.push_back("init_TSL2561");
   }
-  delay(50);
   if (!init_AS3935(Wire1))
   {
     sensorErrors.push_back("init_AS3935");
   }
-  delay(10);
+  delay(5);
 
   // Set the pins for rain and particle sensors as input
   pinMode(rainS_DO, INPUT);
@@ -600,12 +599,10 @@ void loop()
   {
     sensorErrors.push_back("read_TSL2561");
   }
-  delay(50);
   if (!read_AS3935(lightning_distanceToStorm))
   {
     sensorErrors.push_back("read_AS3935");
   }
-  delay(50);
   if (!read_TSL237(luminosity, nelm, SQM_LIMIT))
   {
     sensorErrors.push_back("read_TSL237");
@@ -641,10 +638,16 @@ void loop()
       {
         serverErrorCount++;
       }
+      else
+      {
+        serverErrorCount = 0;
+      }
+      noWifiCount = 0;
       hasWIFI = true;
       sendCount++;
       // set custom sleep time
       sleepTime = SLEEPTIME_s;
+      
     }
 
     // else wait for connection
