@@ -62,7 +62,8 @@ RTC_DATA_ATTR int GOOD_SKY_STATE_COUNT = 0;
 
 // sensor values
 bool raining = false;
-float ambient, object = -333; //TQ, HT
+float ambient = -333;//TQ
+float object = -333; //HT
 double lux = -333; // Resulting lux value
 int lightning_distanceToStorm = -333;
 float luminosity = -333; // the SQM value, sky magnitude

@@ -540,9 +540,9 @@ void setup()
   Serial.begin(115200);
 
   // Start the I2C communication for the lightning sensor
-  Wire1.begin(SDA_2, SCL_2, 100000U);
+  Wire1.begin(SDA_2, SCL_2, 20000U);
   // Start the I2C communication for the other sensors
-  Wire.begin(21, 22, 10000U);
+  Wire.begin(21, 22, 100000U);
 
   // Load the saved network settings
   if (!hasInitialized)
@@ -562,6 +562,7 @@ void setup()
   pinMode(EN_5V, OUTPUT);
   digitalWrite(EN_3V3, HIGH);
   digitalWrite(EN_5V, HIGH);
+  delay(3);
 
   // Initialize the SQM sensor
   FreqCountESP.begin(SQMpin, 100);
@@ -571,16 +572,19 @@ void setup()
   {
     sensorErrors.push_back("init_MLX90614");
   }
-  delay(10);
+  delay(50);
   if (!init_TSL2561())
   {
     sensorErrors.push_back("init_TSL2561");
   }
+  /*
   if (!init_AS3935(Wire1))
   {
     sensorErrors.push_back("init_AS3935");
   }
-  delay(5);
+  
+  */
+  delay(20);
 
   // Set the pins for rain and particle sensors as input
   pinMode(rainS_DO, INPUT);
@@ -607,6 +611,7 @@ void loop()
   {
     sensorErrors.push_back("read_TSL237");
   }
+  delay(20);
   // read the sensor values
   read_particle(concentration);
   read_rain(raining);
@@ -637,6 +642,7 @@ void loop()
       if (hasServerError)
       {
         serverErrorCount++;
+        sleepTime = NOWIFI_SLEEPTIME_s;
       }
       else
       {
