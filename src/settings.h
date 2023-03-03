@@ -39,6 +39,9 @@
 
 #define MYPORT_TX 17 //TX Port for UART communication
 #define MYPORT_RX 16 //RX Port for UART communication
+ 
+#define SDA_2 14 // SDA for lightning sensor
+#define SCL_2 5 // SCL for lightning sensor
 
 // ===========================================================
 //                 ESP32 SETTINGS
