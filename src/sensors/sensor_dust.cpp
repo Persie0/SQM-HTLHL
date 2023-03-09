@@ -7,7 +7,7 @@ unsigned long lowpulseoccupancy = 0;
 float ratio = 0;
 float temp_concentration = 0;
 
-void read_particle(int &concentration)
+void read_particles(int &concentration)
 {
   starttime = millis(); // get the current time;
   lowpulseoccupancy = 0;

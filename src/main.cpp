@@ -26,16 +26,15 @@
 
 #include "hardware/wifi_fkt.h"
 #include "hardware/seeing_fkt.h"
-#include <hardware\display_and_pins.h>
+#include "hardware/display_and_pins.h"
 
 using namespace std;
-
 
 static int sleepTime = 5;
 static bool sleepForever = false;
 
 // RTC_DATA_ATTR values dont get reset after deepsleep
-//state and error tracking variables
+// state and error tracking variables
 RTC_DATA_ATTR int noWifiCount = 0;
 RTC_DATA_ATTR int sendCount = 0;
 RTC_DATA_ATTR int serverErrorCount = 0;
@@ -44,28 +43,22 @@ RTC_DATA_ATTR bool hasInitialized = false;
 RTC_DATA_ATTR bool settingsLoaded = false;
 RTC_DATA_ATTR bool hasWIFI = false;
 RTC_DATA_ATTR bool hasServerError = false;
+RTC_DATA_ATTR int NOWIFI_SLEEPTIME_s = 10;
 
 // settings that get fetched from server
-RTC_DATA_ATTR int SLEEPTIME_s = FALLBACK_SLEEPTIME_s;
-RTC_DATA_ATTR int NO_WIFI_MAX_RETRIES = FALLBACK_NO_WIFI_MAX_RETRIES;
-RTC_DATA_ATTR int DISPLAY_TIMEOUT_s = FALLBACK_DISPLAY_TIMEOUT_s;
-RTC_DATA_ATTR int DISPLAY_ON = FALLBACK_DISPLAY_ON;
-RTC_DATA_ATTR double SQM_LIMIT = FALLBACK_SQM_LIMIT;
+RTC_DATA_ATTR int SLEEPTIME_s, NO_WIFI_MAX_RETRIES, DISPLAY_TIMEOUT_s, DISPLAY_ON, seeing_thr;
+RTC_DATA_ATTR double SQM_LIMIT, SP1, SP2, MAX_LUX;
 RTC_DATA_ATTR bool SEEING_ENABLED = false;
-RTC_DATA_ATTR int seeing_thr = FALLBACK_seeing_thr;
-RTC_DATA_ATTR double SP1 = FALLBACK_SP1;
-RTC_DATA_ATTR double SP2 = FALLBACK_SP2;
-RTC_DATA_ATTR double MAX_LUX = FALLBACK_MAXLUX;
 
 // sensor values
 bool raining = false;
-float ambient = -333;//TQ
-float object = -333; //HT
-double lux = -333; // Resulting lux value
+float ambient = -333; // TQ
+float object = -333;  // HT
+double lux = -333;    // Resulting lux value
 int lightning_distanceToStorm = -333;
 float luminosity = -333; // the SQM value, sky magnitude
-String seeing = "-333"; 
-double nelm = -333; //NE
+String seeing = "-333";
+double nelm = -333; // NE
 int concentration = -333;
 vector<String> sensorErrors;
 
@@ -177,76 +170,72 @@ void loop()
   }
   delay(20);
   // read the sensor values
-  read_particle(concentration);
+  read_particles(concentration);
   read_rain(raining);
 
   if (SEEING_ENABLED)
   {
     UART_get_Seeing(seeing);
   }
-  if (ESP_MODE == 1)
+  // turn display off after set time
+  if (DISPLAY_ON && hasWIFI && DISPLAY_TIMEOUT_s != 0 && (DISPLAY_TIMEOUT_s < ((sendCount * SLEEPTIME_s) + (noWifiCount * (NOWIFI_SLEEPTIME_s + 6)))))
   {
-    // turn display off after set time
-    if (DISPLAY_ON && hasWIFI && DISPLAY_TIMEOUT_s != 0 && (DISPLAY_TIMEOUT_s < ((sendCount * SLEEPTIME_s) + (noWifiCount * (NOWIFI_SLEEPTIME_s + 6)))))
-    {
-      // disable display supply voltage
-      DISPLAY_ON = false;
-      digitalWrite(EN_Display, LOW);
-    }
+    // disable display supply voltage
+    DISPLAY_ON = false;
+    digitalWrite(EN_Display, LOW);
+  }
 
-    // send data if connected
-    if (WiFi.status() == WL_CONNECTED)
+  // send data if connected
+  if (WiFi.status() == WL_CONNECTED)
+  {
+    // fetch settings if not loaded yet or desired
+    if (!settingsLoaded)
     {
-      // fetch settings if not loaded yet or desired
-      if (!settingsLoaded)
-      {
-        settingsLoaded = fetch_settings(FETCH_SETTINGS_SERVER, seeing_thr, SP1, SP2, MAX_LUX, SLEEPTIME_s, DISPLAY_TIMEOUT_s, DISPLAY_ON, SQM_LIMIT);
-      }
-      //bool post_data(char *SEND_VALUES_SERVER, bool raining, int luminosity, int seeing, int nelm, int concentration, String object, int ambient, int lux, int lightning_distanceToStorm, std::vector<String> sensorErrors, bool SEEING_ENABLED)
-      hasServerError = !post_data(SEND_VALUES_SERVER, raining, luminosity, seeing, nelm, concentration, object, ambient, lux, lightning_distanceToStorm, sensorErrors, SEEING_ENABLED);
-      if (hasServerError)
-      {
-        serverErrorCount++;
-        sleepTime = NOWIFI_SLEEPTIME_s;
-      }
-      else
-      {
-        serverErrorCount = 0;
-      }
-      noWifiCount = 0;
-      hasWIFI = true;
-      sendCount++;
-      // set custom sleep time
-      sleepTime = SLEEPTIME_s;
+      settingsLoaded = fetch_settings(FETCH_SETTINGS_SERVER, seeing_thr, SP1, SP2, MAX_LUX, SLEEPTIME_s, DISPLAY_TIMEOUT_s, DISPLAY_ON, SQM_LIMIT);
     }
-
-    // else wait for connection
+    hasServerError = !post_data(SEND_VALUES_SERVER, raining, luminosity, seeing, nelm, concentration, object, ambient, lux, lightning_distanceToStorm, sensorErrors, SEEING_ENABLED);
+    if (hasServerError)
+    {
+      serverErrorCount++;
+      sleepTime = NOWIFI_SLEEPTIME_s;
+    }
     else
     {
-      sleepTime = NOWIFI_SLEEPTIME_s;
-      noWifiCount++;
-      hasWIFI = false;
+      serverErrorCount = 0;
     }
-
-    // sleep forever if max retries reached
-    if (noWifiCount >= NO_WIFI_MAX_RETRIES || serverErrorCount >= NO_WIFI_MAX_RETRIES)
-    {
-      // open AP for changing WIFI settings
-      sleepForever = true;
-      DisplayStatusMessage(hasWIFI, hasServerError, settingsLoaded, sendCount, noWifiCount, sleepForever, DISPLAY_ON);
-      activate_access_point();
-    }
-
-    // if couldnt send data - turn display on again and show error message
-    if ((!hasWIFI || hasServerError) && !DISPLAY_ON)
-    {
-      DISPLAY_ON = true;
-      // keep display on in deepsleep
-      high_hold_Pin(EN_Display);
-      delay(5);
-    }
-    check_seeing_threshhold(seeing_thr, GOOD_SKY_STATE_COUNT, BAD_SKY_STATE_COUNT, lastSeeingChecks, CLOUD_STATE, lux, MAX_LUX, SEEING_ENABLED, SLEEPTIME_s);
+    noWifiCount = 0;
+    hasWIFI = true;
+    sendCount++;
+    // set custom sleep time
+    sleepTime = SLEEPTIME_s;
   }
+
+  // else wait for connection
+  else
+  {
+    sleepTime = NOWIFI_SLEEPTIME_s;
+    noWifiCount++;
+    hasWIFI = false;
+  }
+
+  // sleep forever if max retries reached
+  if (noWifiCount >= NO_WIFI_MAX_RETRIES || serverErrorCount >= NO_WIFI_MAX_RETRIES)
+  {
+    // open AP for changing WIFI settings
+    sleepForever = true;
+    DisplayStatusMessage(hasWIFI, hasServerError, settingsLoaded, sendCount, noWifiCount, sleepForever, DISPLAY_ON);
+    activate_access_point();
+  }
+
+  // if couldnt send data - turn display on again and show error message
+  if ((!hasWIFI || hasServerError) && !DISPLAY_ON)
+  {
+    DISPLAY_ON = true;
+    // keep display on in deepsleep
+    high_hold_Pin(EN_Display);
+    delay(5);
+  }
+  check_seeing_threshhold(seeing_thr, GOOD_SKY_STATE_COUNT, BAD_SKY_STATE_COUNT, lastSeeingChecks, CLOUD_STATE, lux, MAX_LUX, SEEING_ENABLED, SLEEPTIME_s);
   DisplayStatusMessage(hasWIFI, hasServerError, settingsLoaded, sendCount, noWifiCount, sleepForever, DISPLAY_ON);
   WiFi.mode(WIFI_MODE_NULL);           // Switch WiFi off
   esp_deep_sleep(sleepTime * 1000000); // send ESP32 to deepsleep
