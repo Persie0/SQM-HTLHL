@@ -7,10 +7,6 @@
 // ===========================================================
 
 // WiFi credentials.
-#define FALLBACK_WIFI_SSID "SQM"
-#define FALLBACK_WIFI_PASS "Passw0rt"
-
-#define FALLBACK_SERVER_IP "192.168.43.130"
 #define serverPort "5000"
 
 // Post sensor values - Domain name with URL path or IP address with path
@@ -41,7 +37,7 @@
 #define MYPORT_RX 16 //RX Port for UART communication
  
 #define SDA_2 14 // SDA for lightning sensor
-#define SCL_2 5 // SCL for lightning sensor
+#define SCL_2 12 // SCL for lightning sensor
 
 // ===========================================================
 //                 ESP32 SETTINGS
