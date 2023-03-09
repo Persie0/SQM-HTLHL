@@ -25,10 +25,6 @@ bool read_MLX90614(float &ambient,float &object)
         // They'll be floats, calculated out to the unit you set with setUnit().
         object = therm.object();
         ambient = therm.ambient();
-        Serial.print("Object Temp: ");
-        Serial.print(object);
-        Serial.print(" Ambient Temp: ");
-        Serial.println(ambient);
         return true;
     }
     return false;

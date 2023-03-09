@@ -4,11 +4,10 @@
  * @author  Marvin Perzi
  * @version V03
  * @date    2023
- * @brief   Sky Quality Meter that sends sensor values to an API endpoint
+ * @brief   ESP32 program for the SQM Diploma Thesis of Marvin Perzi and Lorenz Schneider
  ******************************************************************************
  */
 
-// Debugger inbestriebnahme, breakpoints, variablen, watchpoints,
 #include <Arduino.h>
 #include <vector>
 #include "settings.h"
@@ -68,7 +67,7 @@ RTC_DATA_ATTR int BAD_SKY_STATE_COUNT = 0;
 RTC_DATA_ATTR int GOOD_SKY_STATE_COUNT = 0;
 RTC_DATA_ATTR vector<bool> lastSeeingChecks;
 
-// across deepsleep stored values
+// across deepsleep stored connection settings
 RTC_DATA_ATTR char WIFI_SSID[100] = "";
 RTC_DATA_ATTR char WIFI_PASS[100] = "";
 RTC_DATA_ATTR char SERVER_IP[100] = "";
@@ -100,11 +99,11 @@ void setup()
   Serial.begin(115200);
 
   // Start the I2C communication for the lightning sensor
-  Wire1.begin(SDA_2, SCL_2, 20000U);
+  Wire1.begin(SDA_2, SCL_2, 100000U);
   // Start the I2C communication for the other sensors
-  Wire.begin(21, 22, 100000U);
+  Wire.begin(SDA_1, SCL_1, 100000U);
 
-  // Load the saved network settings
+  // Load the network settings from the server once
   if (!hasInitialized)
   {
     getSavedWifiSettings(WIFI_SSID, WIFI_PASS, SERVER_IP, SEND_VALUES_SERVER, FETCH_SETTINGS_SERVER);
@@ -209,7 +208,6 @@ void loop()
     // set custom sleep time
     sleepTime = SLEEPTIME_s;
   }
-
   // else wait for connection
   else
   {
@@ -235,6 +233,7 @@ void loop()
     high_hold_Pin(EN_Display);
     delay(5);
   }
+
   check_seeing_threshhold(seeing_thr, GOOD_SKY_STATE_COUNT, BAD_SKY_STATE_COUNT, lastSeeingChecks, CLOUD_STATE, lux, MAX_LUX, SEEING_ENABLED, SLEEPTIME_s);
   DisplayStatusMessage(hasWIFI, hasServerError, settingsLoaded, sendCount, noWifiCount, sleepForever, DISPLAY_ON);
   WiFi.mode(WIFI_MODE_NULL);           // Switch WiFi off

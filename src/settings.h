@@ -32,6 +32,8 @@
 #define MYPORT_TX 17 //TX Port for UART communication
 #define MYPORT_RX 16 //RX Port for UART communication
  
+#define SDA_1 21 // SDA for other sensors
+#define SCL_1 22 // SCL for other sensors
 #define SDA_2 14 // SDA for lightning sensor
 #define SCL_2 12 // SCL for lightning sensor
 
