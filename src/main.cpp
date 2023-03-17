@@ -45,8 +45,8 @@ RTC_DATA_ATTR bool hasServerError = false;
 RTC_DATA_ATTR int NOWIFI_SLEEPTIME_s = 10;
 
 // settings that get fetched from server
-RTC_DATA_ATTR int SLEEPTIME_s, NO_WIFI_MAX_RETRIES, DISPLAY_TIMEOUT_s, DISPLAY_ON, seeing_thr;
-RTC_DATA_ATTR double SQM_LIMIT, SP1, SP2, MAX_LUX;
+RTC_DATA_ATTR int SLEEPTIME_s = 180, NO_WIFI_MAX_RETRIES = 5, DISPLAY_TIMEOUT_s = 180, DISPLAY_ON = 1, seeing_thr = 5;
+RTC_DATA_ATTR double SQM_LIMIT = 21, SP1 = 20, SP2 = 22, MAX_LUX = 50;
 RTC_DATA_ATTR bool SEEING_ENABLED = false;
 
 // sensor values
@@ -99,7 +99,7 @@ void setup()
   Serial.begin(115200);
 
   // Start the I2C communication for the lightning sensor
-  //Wire1.begin(SDA_2, SCL_2, 100000U);
+  // Wire1.begin(SDA_2, SCL_2, 100000U);
   // Start the I2C communication for the other sensors
   Wire.begin(SDA_1, SCL_1, 100000U);
 
@@ -174,18 +174,6 @@ void loop()
   read_particles(concentration);
   read_rain(raining);
 
-  if (SEEING_ENABLED)
-  {
-    UART_get_Seeing(seeing);
-  }
-  // turn display off after set time
-  if (DISPLAY_ON && hasWIFI && DISPLAY_TIMEOUT_s != 0 && (DISPLAY_TIMEOUT_s < ((sendCount * SLEEPTIME_s) + (noWifiCount * (NOWIFI_SLEEPTIME_s + 6)))))
-  {
-    // disable display supply voltage
-    DISPLAY_ON = false;
-    digitalWrite(EN_Display, LOW);
-  }
-
   // send data if connected
   if (WiFi.status() == WL_CONNECTED)
   {
@@ -193,8 +181,14 @@ void loop()
     if (!settingsLoaded)
     {
       settingsLoaded = fetch_settings(FETCH_SETTINGS_SERVER, seeing_thr, SP1, SP2, MAX_LUX, SLEEPTIME_s, DISPLAY_TIMEOUT_s, DISPLAY_ON, SQM_LIMIT);
+      Serial.print("Settings loaded: ");
+      Serial.println(settingsLoaded);
+      esp_deep_sleep(1);
     }
     hasServerError = !post_data(SEND_VALUES_SERVER, raining, luminosity, seeing, nelm, concentration, object, ambient, lux, lightning_distanceToStorm, sensorErrors, SEEING_ENABLED);
+    Serial.print("Server error: ");
+    Serial.println(hasServerError);
+
     if (hasServerError)
     {
       serverErrorCount++;
@@ -218,6 +212,18 @@ void loop()
     hasWIFI = false;
   }
 
+  if (SEEING_ENABLED)
+  {
+    UART_get_Seeing(seeing);
+  }
+  // turn display off after set time
+  if (DISPLAY_ON && hasWIFI && DISPLAY_TIMEOUT_s != 0 && (DISPLAY_TIMEOUT_s < ((sendCount * SLEEPTIME_s) + (noWifiCount * (NOWIFI_SLEEPTIME_s + 6)))))
+  {
+    // disable display supply voltage
+    DISPLAY_ON = false;
+    digitalWrite(EN_Display, LOW);
+  }
+
   // sleep forever if max retries reached
   if (noWifiCount >= NO_WIFI_MAX_RETRIES || serverErrorCount >= NO_WIFI_MAX_RETRIES)
   {
@@ -238,7 +244,7 @@ void loop()
 
   check_seeing_threshhold(seeing_thr, GOOD_SKY_STATE_COUNT, BAD_SKY_STATE_COUNT, lastSeeingChecks, CLOUD_STATE, lux, MAX_LUX, SEEING_ENABLED, SLEEPTIME_s);
   DisplayStatusMessage(hasWIFI, hasServerError, settingsLoaded, sendCount, noWifiCount, sleepForever, DISPLAY_ON);
-  WiFi.mode(WIFI_MODE_NULL);           // Switch WiFi off
+  WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
   Serial.println("Going to sleep now for " + String(sleepTime) + " seconds");
   esp_deep_sleep(sleepTime * 1000000); // send ESP32 to deepsleep
 }

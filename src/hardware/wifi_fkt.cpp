@@ -194,13 +194,10 @@ bool fetch_settings(char *FETCH_SETTINGS_SERVER, int &seeing_thr, double &SP1, d
     {
       SQM_LIMIT = doc["set_sqm_limit"].as<double>();
     }
-    // Disconnect
-    http.end();
-    return true;
   }
   // Disconnect
   http.end();
-  return false;
+  return httpResponseCode == 200;
 }
 
 // send the sensor values via http post request to the server
@@ -219,8 +216,8 @@ bool post_data(char *SEND_VALUES_SERVER, bool raining, float luminosity, String 
   }
   // create a json string
   String sensor_data = "{\"raining\":\"" + String(raining) + "\",\"luminosity\":\"" + luminosity + "\",\"seeing\":\"" + seeing + "\",\"nelm\":\"" + nelm +
-                  "\",\"concentration\":\"" + concentration + "\",\"object\":\"" + object + "\",\"ambient\":\"" + ambient + "\",\"lux\":\"" + lux +
-                  "\",\"lightning_distanceToStorm\":\"" + lightning_distanceToStorm + "\",\"errors\":\"" + errors + "\",\"isSeeing\":\"" + SEEING_ENABLED + "\"}";
+                       "\",\"concentration\":\"" + concentration + "\",\"object\":\"" + object + "\",\"ambient\":\"" + ambient + "\",\"lux\":\"" + lux +
+                       "\",\"lightning_distanceToStorm\":\"" + lightning_distanceToStorm + "\",\"errors\":\"" + errors + "\",\"isSeeing\":\"" + SEEING_ENABLED + "\"}";
   // Start the HTTP connection
   http.begin(client, SEND_VALUES_SERVER);
   http.addHeader("Content-Type", "application/json");
