@@ -29,8 +29,8 @@
 
 using namespace std;
 
-static int sleepTime = 5;
-static bool sleepForever = false;
+int sleepTime = 5;
+bool sleepForever = false;
 
 // RTC_DATA_ATTR values dont get reset after deepsleep
 // state and error tracking variables
@@ -45,7 +45,7 @@ RTC_DATA_ATTR bool hasServerError = false;
 RTC_DATA_ATTR int NOWIFI_SLEEPTIME_s = 10;
 
 // settings that get fetched from server
-RTC_DATA_ATTR int SLEEPTIME_s = 180, NO_WIFI_MAX_RETRIES = 5, DISPLAY_TIMEOUT_s = 180, DISPLAY_ON = 1, seeing_thr = 5;
+RTC_DATA_ATTR int SLEEPTIME_s = 10, NO_WIFI_MAX_RETRIES = 3, DISPLAY_TIMEOUT_s = 180, DISPLAY_ON = 1, seeing_thr = 5;
 RTC_DATA_ATTR double SQM_LIMIT = 21, SP1 = 20, SP2 = 22, MAX_LUX = 50;
 RTC_DATA_ATTR bool SEEING_ENABLED = false;
 

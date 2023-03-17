@@ -24,7 +24,7 @@ void activate_access_point()
   delay(10);
 
   // AP IP settings
-  IPAddress localIP(192, 168, 1, 2);
+  IPAddress localIP(192, 168, 1, 1);
   IPAddress gateway(192, 168, 1, 0);
   IPAddress subnet(255, 255, 255, 0);
   // Set AP IP settings
