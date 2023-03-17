@@ -218,7 +218,7 @@ bool post_data(char *SEND_VALUES_SERVER, bool raining, int luminosity, String se
     errors = errors + sensorErrors[i] + ", ";
   }
   // create a json string
-  String search = "{\"raining\":\"" + String(raining) + "\",\"luminosity\":\"" + luminosity + "\",\"seeing\":\"" + seeing + "\",\"nelm\":\"" + nelm +
+  String sensor_data = "{\"raining\":\"" + String(raining) + "\",\"luminosity\":\"" + luminosity + "\",\"seeing\":\"" + seeing + "\",\"nelm\":\"" + nelm +
                   "\",\"concentration\":\"" + concentration + "\",\"object\":\"" + object + "\",\"ambient\":\"" + ambient + "\",\"lux\":\"" + lux +
                   "\",\"lightning_distanceToStorm\":\"" + lightning_distanceToStorm + "\",\"errors\":\"" + errors + "\",\"isSeeing\":\"" + SEEING_ENABLED + "\"}";
   // Start the HTTP connection
@@ -226,7 +226,7 @@ bool post_data(char *SEND_VALUES_SERVER, bool raining, int luminosity, String se
   http.addHeader("Content-Type", "application/json");
 
   // Send the JSON string as the HTTP body
-  int httpResponseCode = http.POST(search);
+  int httpResponseCode = http.POST(sensor_data);
   http.end(); // End the connection
 
   // Return true if the post request is successful

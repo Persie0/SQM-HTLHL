@@ -10,10 +10,6 @@
 
 HardwareSerial SerialPort(2); // use UART2
 
-// calculate if cloudy/clear sky
-int get_cloud_state(float ambient, float object, double SP1, double SP2)
-{
-  float TempDiff = ambient - object;
   // object temp is IR temp of sky which at night time will be a lot less than ambient temp
   // so TempDiff is basically ambient + abs(object)
   // setpoint 1 is set for clear skies
@@ -24,7 +20,14 @@ int get_cloud_state(float ambient, float object, double SP1, double SP2)
 
   // Readings are only valid at night when dark and sensor is pointed to sky
   // During the day readings are meaningless
+
+  
+// calculate if cloudy/clear sky
+int get_cloud_state(float ambient, float object, double SP1, double SP2)
+{
+  float TempDiff = ambient - object;
   int CLOUD_STATE = SKYUNKNOWN;
+  //determine if clear or cloudy
   if (TempDiff > SP1)
   {
     CLOUD_STATE = SKYCLEAR; // clear
@@ -73,6 +76,7 @@ bool UART_get_Seeing(String &seeing)
   teststr=SerialPort.readString(); // read until timeout
   // trim the string
   teststr.trim();
+  SerialPort.end();
   if(teststr.length() > 2)
   {
     // if string is not empty, set seeing
