@@ -16,7 +16,7 @@
 /// @param sensorErrors 
 /// @param SEEING_ENABLED 
 /// @return true if the data was sent successfully, false otherwise
-bool post_data(char *SEND_VALUES_SERVER, bool raining, int luminosity, String seeing, int nelm, int concentration, int object, int ambient, int lux, int lightning_distanceToStorm, std::vector<String> sensorErrors, bool SEEING_ENABLED);
+bool post_data(char *SEND_VALUES_SERVER, bool raining, float luminosity, String seeing, double nelm, int concentration, float object, float ambient, double lux, int lightning_distanceToStorm, std::vector<String> sensorErrors, bool SEEING_ENABLED);
 
 /// @brief Fetch the settings from the server
 /// @param FETCH_SETTINGS_SERVER the server ip route to fetch the settings from
@@ -29,7 +29,7 @@ bool post_data(char *SEND_VALUES_SERVER, bool raining, int luminosity, String se
 /// @param DISPLAY_ON
 /// @param SQM_LIMIT
 /// @return true if the settings were fetched successfully, false otherwise
-bool fetch_settings(char *FETCH_SETTINGS_SERVER, int &seeing_thr, double &SP1, double &SP2, double &MAX_LUX, int &SLEEPTIME_s, int DISPLAY_TIMEOUT_s, int &DISPLAY_ON, double &SQM_LIMIT);
+bool fetch_settings(char *FETCH_SETTINGS_SERVER, int &seeing_thr, double &SP1, double &SP2, double &MAX_LUX, int &SLEEPTIME_s, int &DISPLAY_TIMEOUT_s, int &DISPLAY_ON, double &SQM_LIMIT);
 
 /// @brief Read the saved wifi settings from the SPIFFS file system
 /// @param WIFI_SSID the wifi ssid

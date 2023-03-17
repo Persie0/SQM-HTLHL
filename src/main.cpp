@@ -99,7 +99,7 @@ void setup()
   Serial.begin(115200);
 
   // Start the I2C communication for the lightning sensor
-  Wire1.begin(SDA_2, SCL_2, 100000U);
+  //Wire1.begin(SDA_2, SCL_2, 100000U);
   // Start the I2C communication for the other sensors
   Wire.begin(SDA_1, SCL_1, 100000U);
 
@@ -121,7 +121,7 @@ void setup()
   pinMode(EN_5V, OUTPUT);
   digitalWrite(EN_3V3, HIGH);
   digitalWrite(EN_5V, HIGH);
-  delay(3);
+  delay(20);
 
   // Initialize the SQM sensor
   FreqCountESP.begin(SQMpin, 100);
@@ -136,11 +136,12 @@ void setup()
   {
     sensorErrors.push_back("init_TSL2561");
   }
-  if (!init_AS3935(Wire1))
+  /*if (!init_AS3935(Wire1))
   {
     sensorErrors.push_back("init_AS3935");
   }
   delay(20);
+  */
 
   // Set the pins for rain and particle sensors as input
   pinMode(rainS_DO, INPUT);
@@ -159,10 +160,11 @@ void loop()
   {
     sensorErrors.push_back("read_TSL2561");
   }
-  if (!read_AS3935(lightning_distanceToStorm))
+  /*if (!read_AS3935(lightning_distanceToStorm))
   {
     sensorErrors.push_back("read_AS3935");
   }
+  */
   if (!read_TSL237(luminosity, nelm, SQM_LIMIT))
   {
     sensorErrors.push_back("read_TSL237");
@@ -237,5 +239,6 @@ void loop()
   check_seeing_threshhold(seeing_thr, GOOD_SKY_STATE_COUNT, BAD_SKY_STATE_COUNT, lastSeeingChecks, CLOUD_STATE, lux, MAX_LUX, SEEING_ENABLED, SLEEPTIME_s);
   DisplayStatusMessage(hasWIFI, hasServerError, settingsLoaded, sendCount, noWifiCount, sleepForever, DISPLAY_ON);
   WiFi.mode(WIFI_MODE_NULL);           // Switch WiFi off
+  Serial.println("Going to sleep now for " + String(sleepTime) + " seconds");
   esp_deep_sleep(sleepTime * 1000000); // send ESP32 to deepsleep
 }

@@ -138,7 +138,7 @@ bool getSavedWifiSettings(char *WIFI_SSID, char *WIFI_PASS, char *SERVER_IP, cha
 }
 
 // Function to fetch settings from a server
-bool fetch_settings(char *FETCH_SETTINGS_SERVER, int &seeing_thr, double &SP1, double &SP2, double &MAX_LUX, int &SLEEPTIME_s, int DISPLAY_TIMEOUT_s, int &DISPLAY_ON, double &SQM_LIMIT)
+bool fetch_settings(char *FETCH_SETTINGS_SERVER, int &seeing_thr, double &SP1, double &SP2, double &MAX_LUX, int &SLEEPTIME_s, int &DISPLAY_TIMEOUT_s, int &DISPLAY_ON, double &SQM_LIMIT)
 {
   // Create client object for communication
   WiFiClient client;
@@ -204,7 +204,7 @@ bool fetch_settings(char *FETCH_SETTINGS_SERVER, int &seeing_thr, double &SP1, d
 }
 
 // send the sensor values via http post request to the server
-bool post_data(char *SEND_VALUES_SERVER, bool raining, int luminosity, String seeing, int nelm, int concentration, int object, int ambient, int lux, int lightning_distanceToStorm, std::vector<String> sensorErrors, bool SEEING_ENABLED)
+bool post_data(char *SEND_VALUES_SERVER, bool raining, float luminosity, String seeing, double nelm, int concentration, float object, float ambient, double lux, int lightning_distanceToStorm, std::vector<String> sensorErrors, bool SEEING_ENABLED)
 {
 
   WiFiClient client;

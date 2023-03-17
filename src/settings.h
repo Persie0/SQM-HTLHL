@@ -34,8 +34,28 @@
  
 #define SDA_1 21 // SDA for other sensors
 #define SCL_1 22 // SCL for other sensors
+//#define SDA_2 14 // SDA for lightning sensor
+//#define SCL_2 12 // SCL for lightning sensor
+
+/*
+#define particle_pin 27  // particle sensor pin; reciving the sensor values with it
+#define lightning_pin 13 // lightning Sensor Pin; reciving the sensor values with it
+#define SQMpin 25        // TSL237 OUT to digital pin 25
+#define rainS_DO 18      // the rain sensor digital port pin, raining=yes/no
+
+#define EN_3V3 15              // power-control pin to enable the 3,3V for the sensors
+#define EN_5V 2              // power-control pin to enable the 5V for the sensors
+#define EN_SEEING GPIO_NUM_5 // power-control pin to enable Seeing
+#define EN_Display GPIO_NUM_4 // power-control pin to enable the display
+
+#define MYPORT_TX 17 //TX Port for UART communication
+#define MYPORT_RX 16 //RX Port for UART communication
+ 
+#define SDA_1 21 // SDA for other sensors
+#define SCL_1 22 // SCL for other sensors
 #define SDA_2 14 // SDA for lightning sensor
 #define SCL_2 12 // SCL for lightning sensor
+*/
 
 // ===========================================================
 //                 ESP32 SETTINGS
