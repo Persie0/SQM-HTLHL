@@ -1,7 +1,6 @@
 #ifndef SEEING_FKT_H
 #define SEEING_FKT_H
 #include <Arduino.h>
-#include <vector>
 
 /// @brief Get the cloud state based on the ambient and object temperature
 /// @param ambient the current ambient temperature
@@ -21,5 +20,5 @@ bool UART_shutdown_Seeing();
 bool UART_get_Seeing(String &seeing);
 
 /// @brief Check wheter to enable or disable the seeing based on the current sky state
-void check_seeing_threshhold(int seeing_thr, int &GOOD_SKY_STATE_COUNT, int &BAD_SKY_STATE_COUNT, std::vector<bool> &lastSeeingChecks, int CLOUD_STATE, float lux, double MAX_LUX, bool &SEEING_ENABLED, int SLEEPTIME_s);
+void check_seeing_threshhold(int seeing_thr, int &GOOD_SKY_STATE_COUNT, int &BAD_SKY_STATE_COUNT, int CLOUD_STATE, float lux, double MAX_LUX, bool &SEEING_ENABLED, int SLEEPTIME_s);
 #endif

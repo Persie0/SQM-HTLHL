@@ -65,7 +65,6 @@ vector<String> sensorErrors;
 RTC_DATA_ATTR int CLOUD_STATE = -333;
 RTC_DATA_ATTR int BAD_SKY_STATE_COUNT = 0;
 RTC_DATA_ATTR int GOOD_SKY_STATE_COUNT = 0;
-RTC_DATA_ATTR vector<bool> lastSeeingChecks;
 
 // across deepsleep stored connection settings
 RTC_DATA_ATTR char WIFI_SSID[100] = "";
@@ -106,6 +105,7 @@ void setup()
   // Load the network settings from the server once
   if (!hasInitialized)
   {
+    Serial.println("Loading wifi settings files...");
     getSavedWifiSettings(WIFI_SSID, WIFI_PASS, SERVER_IP, SEND_VALUES_SERVER, FETCH_SETTINGS_SERVER);
     hasInitialized = true;
   }
@@ -208,6 +208,7 @@ void loop()
   // if not connected to wifi, increase no wifi count and sleep for set time
   else
   {
+    Serial.println("No WIFI");
     sleepTime = NOWIFI_SLEEPTIME_s;
     noWifiCount++;
     hasWIFI = false;
@@ -217,6 +218,16 @@ void loop()
   {
     UART_get_Seeing(seeing);
   }
+
+  // check cloud state and if seeing should be enabled if has wifi
+  if (hasWIFI)
+  {
+    // calculate the cloud state based on IR sensor values
+    CLOUD_STATE = get_cloud_state(object, ambient, SP1, SP2);
+    // check if seeing should be enabled with settings and sensor values
+    check_seeing_threshhold(seeing_thr, GOOD_SKY_STATE_COUNT, BAD_SKY_STATE_COUNT, CLOUD_STATE, lux, MAX_LUX, SEEING_ENABLED, SLEEPTIME_s);
+  }
+
   // turn display off after set time
   if (DISPLAY_ON && hasWIFI && DISPLAY_TIMEOUT_s != 0 && (DISPLAY_TIMEOUT_s < ((sendCount * SLEEPTIME_s) + (noWifiCount * (NOWIFI_SLEEPTIME_s + 6)))))
   {
@@ -243,10 +254,6 @@ void loop()
     high_hold_Pin(EN_Display);
     delay(5);
   }
-  // calculate the cloud state based on IR sensor values
-  CLOUD_STATE = get_cloud_state(object, ambient, SP1, SP2);
-  // check if seeing should be enabled with settings and sensor values
-  check_seeing_threshhold(seeing_thr, GOOD_SKY_STATE_COUNT, BAD_SKY_STATE_COUNT, lastSeeingChecks, CLOUD_STATE, lux, MAX_LUX, SEEING_ENABLED, SLEEPTIME_s);
   // show status message on display
   DisplayStatusMessage(hasWIFI, hasServerError, settingsLoaded, sendCount, noWifiCount, sleepForever, DISPLAY_ON);
   WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off

@@ -1,12 +1,13 @@
 #include <Arduino.h>
 #include <settings.h>
-#include <vector>
 #include <hardware\display_and_pins.h>
 
 #define SKYCLEAR 1
 #define SKYPCLOUDY 2
 #define SKYCLOUDY 3
 #define SKYUNKNOWN 0
+
+RTC_DATA_ATTR int lastSeeingChecks[5] = {0, 0, 0, 0, 0};
 
 HardwareSerial SerialPort(2); // use UART2
 
@@ -25,6 +26,10 @@ HardwareSerial SerialPort(2); // use UART2
 // calculate if cloudy/clear sky
 int get_cloud_state(float ambient, float object, double SP1, double SP2)
 {
+  Serial.println("ambient: " + String(ambient));
+  Serial.println("object: " + String(object));
+  Serial.println("SP1: " + String(SP1));
+  Serial.println("SP2: " + String(SP2));
   float TempDiff = ambient - object;
   int CLOUD_STATE = SKYUNKNOWN;
   //determine if clear or cloudy
@@ -88,28 +93,33 @@ bool UART_get_Seeing(String &seeing)
 }
 
 // check if sky quality was good for long enough
-void check_seeing_threshhold(int seeing_thr, int &GOOD_SKY_STATE_COUNT, int &BAD_SKY_STATE_COUNT, std::vector<bool> &lastSeeingChecks, int CLOUD_STATE, float lux, double MAX_LUX, bool &SEEING_ENABLED, int SLEEPTIME_s)
+void check_seeing_threshhold(int seeing_thr, int &GOOD_SKY_STATE_COUNT, int &BAD_SKY_STATE_COUNT, int CLOUD_STATE, float lux, double MAX_LUX, bool &SEEING_ENABLED, int SLEEPTIME_s)
 {
   // check if sensor values are good and if seeing should be enabled
   // good sky state
   Serial.println("CLOUD_STATE: " + String(CLOUD_STATE));
   Serial.println("lux: " + String(lux));
   Serial.println("MAX_LUX: " + String(MAX_LUX));
+  for (int i = 0; i < 5; i++)
+  {
+    Serial.println("lastSeeingChecks[" + String(i) + "]: " + String(lastSeeingChecks[i]));
+  }
   if ((CLOUD_STATE == SKYCLEAR && lux < MAX_LUX))
   {
     ++GOOD_SKY_STATE_COUNT;
 
     // insert true at beginning of vector
-    lastSeeingChecks.insert(lastSeeingChecks.begin(), true);
-    // if lastSeeingChecks.size() > 5, pop last element
-    if (lastSeeingChecks.size() > 5)
+    //move all elements one position to the right
+    for (int i = 4; i > 0; i--)
     {
-      lastSeeingChecks.pop_back();
+      lastSeeingChecks[i] = lastSeeingChecks[i - 1];
     }
+    // insert true at beginning of vector
+    lastSeeingChecks[0] = true;
 
     // check if more than 2 good in last 5 checks
     int goodcount = 0;
-    for (int i = 0; i < lastSeeingChecks.size(); i++)
+    for (int i = 0; i < 5; i++)
     {
       if (lastSeeingChecks[i])
       {
@@ -135,18 +145,19 @@ void check_seeing_threshhold(int seeing_thr, int &GOOD_SKY_STATE_COUNT, int &BAD
     ++BAD_SKY_STATE_COUNT;
 
     // insert false at beginning of vector
-    lastSeeingChecks.insert(lastSeeingChecks.begin(), false);
-    // if lastSeeingChecks.size() > 5, pop last element
-    if (lastSeeingChecks.size() > 5)
+    //move all elements one position to the right
+    for (int i = 4; i > 0; i--)
     {
-      lastSeeingChecks.pop_back();
+      lastSeeingChecks[i] = lastSeeingChecks[i - 1];
     }
+    // insert false at beginning of vector
+    lastSeeingChecks[0] = false;
 
     // check if more than 2 false in last 5 checks
     int falsecount = 0;
-    for (int i = 0; i < lastSeeingChecks.size(); i++)
+    for (int i = 0; i < 5; i++)
     {
-      if (lastSeeingChecks[i])
+      if (!lastSeeingChecks[i])
       {
         falsecount++;
       }
