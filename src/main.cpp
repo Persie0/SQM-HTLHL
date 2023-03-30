@@ -29,7 +29,7 @@
 
 using namespace std;
 
-int sleepTime = 5;
+int sleepTime = 60;
 bool sleepForever = false;
 
 // RTC_DATA_ATTR values dont get reset after deepsleep
@@ -126,7 +126,7 @@ void setup()
   // Initialize the SQM sensor
   FreqCountESP.begin(SQMpin, 100);
 
-  // Initialize the sensors
+  // Initialize the sensors, add errors to error array if sensor error
   if (!init_MLX90614())
   {
     sensorErrors.push_back("init_MLX90614");
@@ -150,7 +150,7 @@ void setup()
 
 void loop()
 {
-  // read sensors, if sensor error add to array
+  // read sensors, if sensor error add to  error array to be able send them to the server
   if (!read_MLX90614(ambient, object))
   {
     sensorErrors.push_back("read_MLX90614");
@@ -171,47 +171,48 @@ void loop()
   }
   delay(20);
   // read the sensor values
-  read_particles(concentration);
-  read_rain(raining);
+  read_particles(concentration); // read the particle sensor
+  read_rain(raining);            // read the rain sensor
 
-  // send data if connected
+  // send data if connected to wifi
   if (WiFi.status() == WL_CONNECTED)
   {
-    // fetch settings if not loaded yet or desired
+    // fetch settings if not loaded yet
     if (!settingsLoaded)
     {
+      // fetch settings from server, save if successfully fetched
       settingsLoaded = fetch_settings(FETCH_SETTINGS_SERVER, seeing_thr, SP1, SP2, MAX_LUX, SLEEPTIME_s, DISPLAY_TIMEOUT_s, DISPLAY_ON, SQM_LIMIT);
-      Serial.print("Settings loaded: ");
-      Serial.println(settingsLoaded);
-      esp_deep_sleep(1);
+      // start setup() again if settings loaded to apply changes
+      Serial.println("Settings loaded: " + String(settingsLoaded));
+      esp_deep_sleep(100000);
     }
+    // else send sensor values to server
     hasServerError = !post_data(SEND_VALUES_SERVER, raining, luminosity, seeing, nelm, concentration, object, ambient, lux, lightning_distanceToStorm, sensorErrors, SEEING_ENABLED);
-    Serial.print("Server error: ");
-    Serial.println(hasServerError);
 
-    if (hasServerError)
+    if (hasServerError) // if server error, increase error count
     {
       serverErrorCount++;
       sleepTime = NOWIFI_SLEEPTIME_s;
     }
-    else
+    else // else reset error count
     {
       serverErrorCount = 0;
     }
+    // if connected to server, reset no wifi count
     noWifiCount = 0;
     hasWIFI = true;
     sendCount++;
     // set custom sleep time
     sleepTime = SLEEPTIME_s;
   }
-  // else wait for connection
+  // if not connected to wifi, increase no wifi count and sleep for set time
   else
   {
     sleepTime = NOWIFI_SLEEPTIME_s;
     noWifiCount++;
     hasWIFI = false;
   }
-
+  // if seeing enabled, get seeing value
   if (SEEING_ENABLED)
   {
     UART_get_Seeing(seeing);
@@ -227,9 +228,10 @@ void loop()
   // sleep forever if max retries reached
   if (noWifiCount >= NO_WIFI_MAX_RETRIES || serverErrorCount >= NO_WIFI_MAX_RETRIES)
   {
-    // open AP for changing WIFI settings
     sleepForever = true;
+    // show status message on display
     DisplayStatusMessage(hasWIFI, hasServerError, settingsLoaded, sendCount, noWifiCount, sleepForever, DISPLAY_ON);
+    // open AP for changing WIFI settings
     activate_access_point();
   }
 
@@ -241,8 +243,11 @@ void loop()
     high_hold_Pin(EN_Display);
     delay(5);
   }
-
+  // calculate the cloud state based on IR sensor values
+  CLOUD_STATE = get_cloud_state(object, ambient, SP1, SP2);
+  // check if seeing should be enabled with settings and sensor values
   check_seeing_threshhold(seeing_thr, GOOD_SKY_STATE_COUNT, BAD_SKY_STATE_COUNT, lastSeeingChecks, CLOUD_STATE, lux, MAX_LUX, SEEING_ENABLED, SLEEPTIME_s);
+  // show status message on display
   DisplayStatusMessage(hasWIFI, hasServerError, settingsLoaded, sendCount, noWifiCount, sleepForever, DISPLAY_ON);
   WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
   Serial.println("Going to sleep now for " + String(sleepTime) + " seconds");

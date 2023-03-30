@@ -92,6 +92,9 @@ void check_seeing_threshhold(int seeing_thr, int &GOOD_SKY_STATE_COUNT, int &BAD
 {
   // check if sensor values are good and if seeing should be enabled
   // good sky state
+  Serial.println("CLOUD_STATE: " + String(CLOUD_STATE));
+  Serial.println("lux: " + String(lux));
+  Serial.println("MAX_LUX: " + String(MAX_LUX));
   if ((CLOUD_STATE == SKYCLEAR && lux < MAX_LUX))
   {
     ++GOOD_SKY_STATE_COUNT;
@@ -113,8 +116,8 @@ void check_seeing_threshhold(int seeing_thr, int &GOOD_SKY_STATE_COUNT, int &BAD
         goodcount++;
       }
     }
-    // if >= 2 good in last 5 checks, reset BAD_SKY_STATE_COUNT
-    if (goodcount >= 2)
+    // if >= 3 good in last 5 checks, reset BAD_SKY_STATE_COUNT
+    if (goodcount >= 3)
     {
       BAD_SKY_STATE_COUNT = 0;
     }
@@ -148,8 +151,8 @@ void check_seeing_threshhold(int seeing_thr, int &GOOD_SKY_STATE_COUNT, int &BAD
         falsecount++;
       }
     }
-    // if >= 2 false in last 5 checks, reset GoodSkyStateCount
-    if (falsecount >= 2)
+    // if >= 3 false in last 5 checks, reset GoodSkyStateCount
+    if (falsecount >= 3)
     {
       GOOD_SKY_STATE_COUNT = 0;
     }
@@ -167,4 +170,6 @@ void check_seeing_threshhold(int seeing_thr, int &GOOD_SKY_STATE_COUNT, int &BAD
       high_hold_Pin(EN_SEEING);
     }
   }
+  Serial.println("GOOD_SKY_STATE_COUNT: " + String(GOOD_SKY_STATE_COUNT));
+  Serial.println("BAD_SKY_STATE_COUNT: " + String(BAD_SKY_STATE_COUNT));
 }
