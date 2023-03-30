@@ -1,4 +1,4 @@
 #ifndef SENSOR_DUST_H
 #define SENSOR_DUST_H
-void read_particle(int &concentration);
+void read_particles(int &concentration);
 #endif
