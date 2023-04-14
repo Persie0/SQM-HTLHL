@@ -86,6 +86,7 @@ bool UART_get_Seeing(String &seeing)
   {
     // if string is not empty, set seeing
     seeing = teststr;
+    Serial.println("seeing: " + seeing);
     return true;
   }
   // check if string is empty

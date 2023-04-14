@@ -26,7 +26,7 @@
 
 #define EN_3V3 15              // power-control pin to enable the 3,3V for the sensors
 #define EN_5V 2              // power-control pin to enable the 5V for the sensors
-#define EN_SEEING GPIO_NUM_5 // power-control pin to enable Seeing
+#define EN_SEEING GPIO_NUM_14 // power-control pin to enable Seeing
 #define EN_Display GPIO_NUM_4 // power-control pin to enable the display
 
 #define MYPORT_TX 17 //TX Port for UART communication

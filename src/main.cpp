@@ -186,6 +186,14 @@ void loop()
       Serial.println("Settings loaded: " + String(settingsLoaded));
       esp_deep_sleep(100000);
     }
+
+    // if seeing enabled, get seeing value
+    if (SEEING_ENABLED)
+    {
+      Serial.println("Getting seeing...");
+      UART_get_Seeing(seeing);
+    }
+
     // else send sensor values to server
     hasServerError = !post_data(SEND_VALUES_SERVER, raining, luminosity, seeing, nelm, concentration, object, ambient, lux, lightning_distanceToStorm, sensorErrors, SEEING_ENABLED);
 
@@ -212,11 +220,6 @@ void loop()
     sleepTime = NOWIFI_SLEEPTIME_s;
     noWifiCount++;
     hasWIFI = false;
-  }
-  // if seeing enabled, get seeing value
-  if (SEEING_ENABLED)
-  {
-    UART_get_Seeing(seeing);
   }
 
   // check cloud state and if seeing should be enabled if has wifi
