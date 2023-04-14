@@ -117,11 +117,11 @@ void setup()
   WiFi.setTxPower(WIFI_POWER_19_5dBm);
 
   // Enable the supply voltage for the sensors
-  pinMode(EN_3V3, OUTPUT);
+  /*pinMode(EN_3V3, OUTPUT);
   pinMode(EN_5V, OUTPUT);
   digitalWrite(EN_3V3, HIGH);
   digitalWrite(EN_5V, HIGH);
-  delay(20);
+  delay(20);*/
 
   // Initialize the SQM sensor
   FreqCountESP.begin(SQMpin, 100);
@@ -136,12 +136,11 @@ void setup()
   {
     sensorErrors.push_back("init_TSL2561");
   }
-  /*if (!init_AS3935(Wire1))
+  if (!init_AS3935(Wire1))
   {
     sensorErrors.push_back("init_AS3935");
   }
   delay(20);
-  */
 
   // Set the pins for rain and particle sensors as input
   pinMode(rainS_DO, INPUT);
@@ -160,11 +159,10 @@ void loop()
   {
     sensorErrors.push_back("read_TSL2561");
   }
-  /*if (!read_AS3935(lightning_distanceToStorm))
+  if (!read_AS3935(lightning_distanceToStorm))
   {
     sensorErrors.push_back("read_AS3935");
   }
-  */
   if (!read_TSL237(luminosity, nelm, SQM_LIMIT))
   {
     sensorErrors.push_back("read_TSL237");
