@@ -89,8 +89,8 @@ void activate_access_point()
   unsigned long startTime = millis();
 
   // turn sensors off
-  digitalWrite(EN_3V3, LOW);
-  digitalWrite(EN_5V, LOW);
+  //digitalWrite(EN_3V3, LOW);
+  //digitalWrite(EN_5V, LOW);
   // Wait for 20 minutes or until the website changes the WiFi settings
   while ((millis() - startTime) < 1200 * 1000)
   {

@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <settings.h>
+#include <cstdlib>
 #include <hardware\display_and_pins.h>
 
 #define SKYCLEAR 1
@@ -11,18 +12,17 @@ RTC_DATA_ATTR int lastSeeingChecks[5] = {0, 0, 0, 0, 0};
 
 HardwareSerial SerialPort(2); // use UART2
 
-  // object temp is IR temp of sky which at night time will be a lot less than ambient temp
-  // so TempDiff is basically ambient + abs(object)
-  // setpoint 1 is set for clear skies
-  // setpoint 2 is set for cloudy skies
-  // setpoint2 should be lower than setpoint1
-  // For clear, Object will be very low, so TempDiff is largest
-  // For cloudy, Object is closer to ambient, so TempDiff will be lowest
+// object temp is IR temp of sky which at night time will be a lot less than ambient temp
+// so TempDiff is basically ambient + abs(object)
+// setpoint 1 is set for clear skies
+// setpoint 2 is set for cloudy skies
+// setpoint2 should be lower than setpoint1
+// For clear, Object will be very low, so TempDiff is largest
+// For cloudy, Object is closer to ambient, so TempDiff will be lowest
 
-  // Readings are only valid at night when dark and sensor is pointed to sky
-  // During the day readings are meaningless
+// Readings are only valid at night when dark and sensor is pointed to sky
+// During the day readings are meaningless
 
-  
 // calculate if cloudy/clear sky
 int get_cloud_state(float ambient, float object, double SP1, double SP2)
 {
@@ -32,7 +32,7 @@ int get_cloud_state(float ambient, float object, double SP1, double SP2)
   Serial.println("SP2: " + String(SP2));
   float TempDiff = ambient - object;
   int CLOUD_STATE = SKYUNKNOWN;
-  //determine if clear or cloudy
+  // determine if clear or cloudy
   if (TempDiff > SP1)
   {
     CLOUD_STATE = SKYCLEAR; // clear
@@ -78,11 +78,13 @@ bool UART_get_Seeing(String &seeing)
   // Send the "get" command
   SerialPort.println("get");
   String teststr = "";
-  teststr=SerialPort.readString(); // read until timeout
+  SerialPort.flush();
+  
+  teststr = SerialPort.readString();
   // trim the string
   teststr.trim();
   SerialPort.end();
-  if(teststr.length() > 2)
+  if (teststr.length() > 2 && teststr.toFloat() > 0)
   {
     // if string is not empty, set seeing
     seeing = teststr;
@@ -110,7 +112,7 @@ void check_seeing_threshhold(int seeing_thr, int &GOOD_SKY_STATE_COUNT, int &BAD
     ++GOOD_SKY_STATE_COUNT;
 
     // insert true at beginning of vector
-    //move all elements one position to the right
+    // move all elements one position to the right
     for (int i = 4; i > 0; i--)
     {
       lastSeeingChecks[i] = lastSeeingChecks[i - 1];
@@ -146,7 +148,7 @@ void check_seeing_threshhold(int seeing_thr, int &GOOD_SKY_STATE_COUNT, int &BAD
     ++BAD_SKY_STATE_COUNT;
 
     // insert false at beginning of vector
-    //move all elements one position to the right
+    // move all elements one position to the right
     for (int i = 4; i > 0; i--)
     {
       lastSeeingChecks[i] = lastSeeingChecks[i - 1];

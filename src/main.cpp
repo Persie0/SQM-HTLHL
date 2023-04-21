@@ -98,7 +98,7 @@ void setup()
   Serial.begin(115200);
 
   // Start the I2C communication for the lightning sensor
-  // Wire1.begin(SDA_2, SCL_2, 100000U);
+  Wire1.begin(SDA_2, SCL_2, 100000U);
   // Start the I2C communication for the other sensors
   Wire.begin(SDA_1, SCL_1, 100000U);
 
@@ -131,11 +131,12 @@ void setup()
   {
     sensorErrors.push_back("init_MLX90614");
   }
-  delay(50);
+  delay(20);
   if (!init_TSL2561())
   {
     sensorErrors.push_back("init_TSL2561");
   }
+  delay(20);
   if (!init_AS3935(Wire1))
   {
     sensorErrors.push_back("init_AS3935");
@@ -154,7 +155,7 @@ void loop()
   {
     sensorErrors.push_back("read_MLX90614");
   }
-  delay(50);
+  delay(20);
   if (!read_TSL2561(lux))
   {
     sensorErrors.push_back("read_TSL2561");
@@ -163,6 +164,7 @@ void loop()
   {
     sensorErrors.push_back("read_AS3935");
   }
+  delay(20);
   if (!read_TSL237(luminosity, nelm, SQM_LIMIT))
   {
     sensorErrors.push_back("read_TSL237");
@@ -189,7 +191,12 @@ void loop()
     if (SEEING_ENABLED)
     {
       Serial.println("Getting seeing...");
-      UART_get_Seeing(seeing);
+      if(!UART_get_Seeing(seeing))
+      {
+        sensorErrors.push_back("UART_get_Seeing");
+        seeing = "-333";
+      }
+      //check if seeing only contains numbers and a dot
     }
 
     // else send sensor values to server
