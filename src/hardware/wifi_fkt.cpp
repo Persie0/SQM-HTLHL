@@ -98,7 +98,7 @@ void activate_access_point()
   }
 
   // If no changes were made in the website, put the device into deep sleep mode
-  esp_deep_sleep(-77777777);
+  //esp_deep_sleep(-77777777);
 }
 
 bool getSavedWifiSettings(char *WIFI_SSID, char *WIFI_PASS, char *SERVER_IP, char *SEND_VALUES_SERVER, char *FETCH_SETTINGS_SERVER)

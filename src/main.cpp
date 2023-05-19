@@ -45,7 +45,7 @@ RTC_DATA_ATTR bool hasServerError = false;
 RTC_DATA_ATTR int NOWIFI_SLEEPTIME_s = 10;
 
 // settings that get fetched from server
-RTC_DATA_ATTR int SLEEPTIME_s = 10, NO_WIFI_MAX_RETRIES = 3, DISPLAY_TIMEOUT_s = 180, DISPLAY_ON = 1, seeing_thr = 5;
+RTC_DATA_ATTR int SLEEPTIME_s = 10, NO_WIFI_MAX_RETRIES = 25, DISPLAY_TIMEOUT_s = 180, DISPLAY_ON = 1, seeing_thr = 5;
 RTC_DATA_ATTR double SQM_LIMIT = 21, SP1 = 20, SP2 = 22, MAX_LUX = 50;
 RTC_DATA_ATTR bool SEEING_ENABLED = false;
 
@@ -96,6 +96,9 @@ void setup()
 
   // Start the serial communication with a baud rate of 115200
   Serial.begin(115200);
+  Serial.println("Seeingsensor enabled: " + String(SEEING_ENABLED));
+  bool pinstate = digitalRead(EN_SEEING);
+  Serial.println("Seeingsensor pinstate: " + String(pinstate));
 
   // Start the I2C communication for the lightning sensor
   Wire1.begin(SDA_2, SCL_2, 100000U);
@@ -191,12 +194,12 @@ void loop()
     if (SEEING_ENABLED)
     {
       Serial.println("Getting seeing...");
-      if(!UART_get_Seeing(seeing))
+      if (!UART_get_Seeing(seeing))
       {
         sensorErrors.push_back("UART_get_Seeing");
         seeing = "-333";
       }
-      //check if seeing only contains numbers and a dot
+      // check if seeing only contains numbers and a dot
     }
 
     // else send sensor values to server
@@ -264,7 +267,10 @@ void loop()
   }
   // show status message on display
   DisplayStatusMessage(hasWIFI, hasServerError, settingsLoaded, sendCount, noWifiCount, sleepForever, DISPLAY_ON);
-  WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
+  
   Serial.println("Going to sleep now for " + String(sleepTime) + " seconds");
-  esp_deep_sleep(sleepTime * 1000000); // send ESP32 to deepsleep
+
+  //WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
+  //esp_deep_sleep(sleepTime * 1000000); // send ESP32 to deepsleep
+  delay(sleepTime * 1000); // wait between measurements
 }
