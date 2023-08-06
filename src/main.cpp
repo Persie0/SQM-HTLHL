@@ -250,11 +250,24 @@ void loop()
   // sleep forever if max retries reached
   if (noWifiCount >= NO_WIFI_MAX_RETRIES || serverErrorCount >= NO_WIFI_MAX_RETRIES)
   {
-    sleepForever = true;
-    // show status message on display
-    DisplayStatusMessage(hasWIFI, hasServerError, settingsLoaded, sendCount, noWifiCount, sleepForever, DISPLAY_ON);
-    // open AP for changing WIFI settings
-    activate_access_point();
+    if (!settingsLoaded)
+    {
+      sleepForever = true;
+      // show status message on display
+      DisplayStatusMessage(hasWIFI, hasServerError, settingsLoaded, sendCount, noWifiCount, sleepForever, DISPLAY_ON);
+      // open AP for changing WIFI settings
+      activate_access_point();
+    }
+    else
+    {
+      // reconnect to wifi by turning off and on again
+      WiFi.disconnect();
+      delay(100);
+      WiFi.mode(WIFI_STA);
+      WiFi.begin(WIFI_SSID, WIFI_PASS);
+      delay(100);
+      Serial.println("WIFI:" + String(WIFI_SSID));
+    }
   }
 
   // if couldnt send data - turn display on again and show error message
@@ -267,10 +280,10 @@ void loop()
   }
   // show status message on display
   DisplayStatusMessage(hasWIFI, hasServerError, settingsLoaded, sendCount, noWifiCount, sleepForever, DISPLAY_ON);
-  
+
   Serial.println("Going to sleep now for " + String(sleepTime) + " seconds");
 
-  //WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
-  //esp_deep_sleep(sleepTime * 1000000); // send ESP32 to deepsleep
+  // WiFi.mode(WIFI_MODE_NULL); // Switch WiFi off
+  // esp_deep_sleep(sleepTime * 1000000); // send ESP32 to deepsleep
   delay(sleepTime * 1000); // wait between measurements
 }
